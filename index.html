@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>smart_failure_detection — Project Input</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Design 2 — purple SaaS dashboard palette */
+    --ink: #1e1b2e;
+    --ink-soft: #4a4560;
+    --accent: #7c3aed;
+    --accent-2: #4f46e5;
+    --accent-dark: #6d28d9;
+    --bg: #f6f5fb;
+    --card: #ffffff;
+    --text: #1e1b2e;
+    --muted: #6b7280;
+    --border: #e9e7f3;
+    --success: #16a34a;
+    --success-bg: #e8f8ee;
+    --danger: #dc2626;
+    --danger-bg: #fdecec;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* --- Nav bar --- */
+  nav {
+    background: #ffffff;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    height: 64px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  nav .brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.2px;
+    margin-right: 44px;
+    color: var(--ink);
+  }
+  nav .brand .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(84,105,212,0.15);
+  }
+  nav .links a {
+    color: var(--muted);
+    text-decoration: none;
+    margin-right: 24px;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 22px 2px;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  nav .links a.active {
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+    font-weight: 600;
+  }
+  nav .links a:hover { color: var(--ink); }
+
+  /* --- Page layout --- */
+  main {
+    max-width: 680px;
+    margin: 48px auto 80px;
+    padding: 0 20px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 40px 44px;
+    box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06);
+  }
+  .card-header { margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+  h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 6px; }
+  .subtitle { color: var(--muted); font-size: 13.5px; }
+
+  .field-group { margin-bottom: 18px; }
+  label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--ink-soft);
+  }
+  label .label-icon { width: 14px; height: 14px; stroke: var(--accent); flex-shrink: 0; }
+  input, select, textarea {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font-size: 14px;
+    font-family: inherit;
+    background: #fbfaff;
+    color: var(--text);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  textarea { resize: vertical; min-height: 96px; }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+    background: #fff;
+  }
+  select { appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 36px;
+  }
+
+  button {
+    margin-top: 26px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    color: #fff;
+    border: none;
+    padding: 13px 24px;
+    border-radius: 9px;
+    font-size: 14.5px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    letter-spacing: 0.1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 14px rgba(124,58,237,0.28);
+    transition: box-shadow 0.15s ease, transform 0.05s ease, opacity 0.15s ease;
+  }
+  button:hover:not(:disabled) { box-shadow: 0 6px 18px rgba(124,58,237,0.36); opacity: 0.95; }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { background: #c3c1d6; box-shadow: none; cursor: not-allowed; }
+
+  #status {
+    margin-top: 16px;
+    padding: 10px 12px;
+    border-radius: 7px;
+    font-size: 13px;
+    display: none;
+  }
+  #status.error { display: block; background: var(--danger-bg); color: var(--danger); border: 1px solid #f6c3cb; }
+  .required { color: var(--danger); }
+
+  /* --- Success modal --- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26,31,54,0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    animation: fadeIn 0.15s ease;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal-box {
+    background: #fff;
+    border-radius: 14px;
+    padding: 36px 40px 32px;
+    max-width: 380px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(16,24,40,0.18);
+    animation: popIn 0.2s ease;
+  }
+  .modal-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--success-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 18px;
+  }
+  .modal-icon svg { width: 28px; height: 28px; }
+  .modal-box h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px; }
+  .modal-box p { font-size: 13.5px; color: var(--muted); margin-bottom: 4px; line-height: 1.5; }
+  .modal-box .project-id-tag {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 4px 12px;
+    background: var(--bg);
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .modal-box button { margin-top: 22px; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.94) translateY(6px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand"><span class="dot"></span>smart_failure_detection</div>
+  <div class="links">
+    <a href="#" class="active">Project Input</a>
+    <a href="analysis-results.html">Analysis Results</a>
+  </div>
+</nav>
+
+<main>
+  <div class="card">
+    <div class="card-header">
+      <h1>Project Submission</h1>
+      <p class="subtitle">Provide details about your startup to get AI-powered analysis.</p>
+    </div>
+
+    <form id="projectForm">
+      <div class="field-group">
+        <label for="project_name">
+          <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+          Project Name <span class="required">*</span>
+        </label>
+        <input type="text" id="project_name" name="project_name" required maxlength="200" placeholder="Enter project name">
+      </div>
+
+      <div class="field-group">
+        <label for="industry_sector">
+          <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h1M9 13h1M14 9h1M14 13h1"/></svg>
+          Industry / Sector <span class="required">*</span>
+        </label>
+        <input type="text" id="industry_sector" name="industry_sector" required maxlength="150"
+               placeholder="e.g. FinTech, EdTech, HealthTech">
+      </div>
+
+      <div class="field-group">
+        <label for="business_model">
+          <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-4"/></svg>
+          Business Model <span class="required">*</span>
+        </label>
+        <select id="business_model" name="business_model" required>
+          <option value="" disabled selected>Select business model</option>
+          <option value="B2B">B2B</option>
+          <option value="B2C">B2C</option>
+          <option value="B2B2C">B2B2C</option>
+          <option value="D2C">D2C</option>
+          <option value="Marketplace">Marketplace</option>
+          <option value="SaaS">SaaS</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="target_market">
+          <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
+          Target Market <span class="required">*</span>
+        </label>
+        <input type="text" id="target_market" name="target_market" required maxlength="200"
+               placeholder="e.g. Tier-2/3 city students, SMEs in India">
+      </div>
+
+      <div class="field-group">
+        <label for="budget">
+          <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c0-1.4 1.3-2.5 3-2.5s3 1 3 2.2c0 2.8-6 1.3-6 4.1 0 1.2 1.3 2.2 3 2.2s3-1.1 3-2.5"/></svg>
+          Budget (INR) <span class="required">*</span>
+        </label>
+        <input type="number" id="budget" name="budget" required min="1" step="0.01" placeholder="Enter estimated budget">
+      </div>
+
+      <div class="field-group">
+        <label for="description">
+          <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 13h6M9 17h6"/></svg>
+          Project Description <span class="required">*</span>
+        </label>
+        <textarea id="description" name="description" required minlength="10"
+                  placeholder="Tell us about your project, problem it solves, solution, and unique value."></textarea>
+      </div>
+
+      <button type="submit" id="submitBtn">
+        <span id="submitBtnText">Analyze Startup</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+      <div id="status"></div>
+    </form>
+  </div>
+</main>
+
+<!-- Success modal -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal-box">
+    <div class="modal-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0a8a5f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <h2>Successfully Submitted</h2>
+    <p>Your project has been recorded and is queued for risk analysis.</p>
+    <span class="project-id-tag" id="modalProjectId"></span>
+    <br>
+    <button id="modalCloseBtn">Submit Another</button>
+  </div>
+</div>
+
+<script>
+  const API_URL = "http://localhost:8000/api/projects";
+  const form = document.getElementById("projectForm");
+  const statusBox = document.getElementById("status");
+  const submitBtn = document.getElementById("submitBtn");
+  const modal = document.getElementById("successModal");
+  const modalProjectId = document.getElementById("modalProjectId");
+  const modalCloseBtn = document.getElementById("modalCloseBtn");
+  const submitBtnText = document.getElementById("submitBtnText");
+  let pendingRedirect = null;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    statusBox.className = "";
+    statusBox.style.display = "none";
+    submitBtn.disabled = true;
+    submitBtnText.textContent = "Analyzing...";
+
+    const payload = {
+      project_name: form.project_name.value.trim(),
+      industry_sector: form.industry_sector.value.trim(),
+      business_model: form.business_model.value,
+      target_market: form.target_market.value.trim(),
+      budget: parseFloat(form.budget.value),
+      description: form.description.value.trim(),
+    };
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.detail || "Submission failed");
+
+      modalProjectId.textContent = `Project ID #${data.project_id}`;
+      modal.classList.add("visible");
+      form.reset();
+
+      // Automatically move to the analysis page after a brief confirmation pause,
+      // unless the user closes the modal first (see modalCloseBtn handler below).
+      pendingRedirect = setTimeout(() => {
+        window.location.href = `analysis-results.html?project_id=${data.project_id}`;
+      }, 1400);
+    } catch (err) {
+      statusBox.textContent = `Error: ${err.message}`;
+      statusBox.className = "error";
+    } finally {
+      submitBtn.disabled = false;
+      submitBtnText.textContent = "Analyze Startup";
+    }
+  });
+
+  modalCloseBtn.addEventListener("click", () => {
+    if (pendingRedirect) clearTimeout(pendingRedirect);
+    modal.classList.remove("visible");
+  });
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      if (pendingRedirect) clearTimeout(pendingRedirect);
+      modal.classList.remove("visible"); // click outside box closes it
+    }
+  });
+</script>
+
+</body>
+</html>

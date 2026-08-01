@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>smart_failure_detection — Analysis Results</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ===== Design tokens — purple SaaS dashboard palette, matching index.html ===== */
+  :root {
+    --navy: #1e1b2e;        /* "ink" */
+    --navy-light: #4a4560;  /* "ink-soft" */
+    --accent: #7c3aed;
+    --accent-2: #4f46e5;
+    --accent-dark: #6d28d9;
+    --bg: #f6f5fb;
+    --card: #ffffff;
+    --text: #1e1b2e;
+    --muted: #6b7280;
+    --border: #e9e7f3;
+    --success: #16a34a;
+    --success-bg: #e8f8ee;
+    --warn: #b45309;
+    --warn-bg: #fef3e2;
+    --danger: #dc2626;
+    --danger-bg: #fdecec;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* --- Nav bar (identical to index.html) --- */
+  nav {
+    background: #ffffff;
+    color: var(--navy);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    height: 64px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  nav .brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.2px;
+    margin-right: 44px;
+    color: var(--navy);
+  }
+  nav .brand .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(124,58,237,0.15);
+  }
+  nav .links a {
+    color: var(--muted);
+    text-decoration: none;
+    margin-right: 24px;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 22px 2px;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  nav .links a.active {
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+    font-weight: 600;
+  }
+  nav .links a:hover { color: var(--navy); }
+
+  /* --- Page layout --- */
+  main {
+    max-width: 1180px;
+    margin: 40px auto 80px;
+    padding: 0 24px;
+  }
+
+  .page-header { margin-bottom: 28px; }
+  .page-header h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 4px; }
+  .page-header .subtitle { color: var(--muted); font-size: 13.5px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 26px;
+    box-shadow: 0 1px 2px rgba(30,27,46,0.04), 0 6px 20px rgba(30,27,46,0.04);
+  }
+  .card h2 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .card .card-sub {
+    color: var(--muted);
+    font-size: 12.5px;
+    margin-bottom: 18px;
+  }
+
+  /* --- Grid system --- */
+  .grid { display: grid; gap: 20px; margin-bottom: 20px; }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-split { grid-template-columns: 1.15fr 1fr; align-items: start; }
+  @media (max-width: 900px) {
+    .grid-3, .grid-4, .grid-2, .grid-split { grid-template-columns: 1fr; }
+  }
+
+  /* --- Top ring stat cards (Failure Risk / Success Probability / Business Health / Confidence) --- */
+  .ring-card { text-align: center; padding: 22px 16px; }
+  .ring-card .ring-label { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 12px; }
+  .ring-card .ring-wrap { display: flex; align-items: center; justify-content: center; position: relative; }
+  .ring-card .ring-value {
+    position: absolute;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .ring-card .ring-tag {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .tag-danger { background: var(--danger-bg); color: var(--danger); }
+  .tag-warn   { background: var(--warn-bg); color: var(--warn); }
+  .tag-success{ background: var(--success-bg); color: var(--success); }
+
+  /* --- Risk breakdown: donut + legend --- */
+  .donut-layout { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+  .donut-legend { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 10px; }
+  .legend-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .legend-name { flex: 1; color: var(--ink-soft, var(--navy-light)); font-weight: 500; }
+  .legend-pct { font-weight: 700; color: var(--text); }
+
+  /* --- Insights list --- */
+  .insight-list { list-style: none; }
+  .insight-list li {
+    display: flex;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  .insight-list li:last-child { border-bottom: none; }
+  .insight-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent);
+    margin-top: 6px;
+    flex-shrink: 0;
+  }
+
+  /* --- AI Summary --- */
+  .ai-summary-card { position: relative; }
+  .ai-summary-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+    letter-spacing: 0.3px;
+  }
+  .ai-summary-text {
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: #33404f;
+  }
+  .ai-link-btn {
+    margin-top: 16px;
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .ai-link-btn:hover { color: var(--accent-dark); }
+
+  /* --- Top Recommendations checklist --- */
+  .checklist { display: flex; flex-direction: column; gap: 12px; }
+  .checklist-item { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-soft, var(--navy-light)); }
+  .checklist-item .check-icon {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--success-bg);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .checklist-item .check-icon svg { width: 11px; height: 11px; stroke: var(--success); }
+
+  /* --- SWOT quadrant grid (single card) --- */
+  .swot-quadrants { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 22px; }
+  @media (max-width: 640px) { .swot-quadrants { grid-template-columns: 1fr; } }
+  .swot-q h3 {
+    font-size: 12.5px; font-weight: 700; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .swot-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .swot-q ul { list-style: none; }
+  .swot-q li {
+    font-size: 12.5px;
+    color: #33404f;
+    line-height: 1.5;
+    padding-left: 12px;
+    position: relative;
+    margin-bottom: 5px;
+  }
+  .swot-q li::before {
+    content: "";
+    position: absolute; left: 0; top: 7px;
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--muted);
+  }
+
+  /* --- What-if analysis --- */
+  .whatif-card { display: flex; flex-direction: column; gap: 14px; }
+  .whatif-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--bg);
+    border-radius: 9px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .whatif-label { font-size: 12.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+  .whatif-change { font-size: 13.5px; font-weight: 600; }
+  .whatif-arrow { color: var(--muted); margin: 0 4px; }
+  .whatif-delta { font-size: 13px; font-weight: 700; }
+  .delta-down { color: var(--success); }
+  .delta-up { color: var(--danger); }
+
+  /* --- Milestone timeline: horizontal stepper --- */
+  .stepper { display: flex; align-items: flex-start; justify-content: space-between; padding-top: 6px; }
+  .stepper-node { display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1; position: relative; padding: 0 6px; }
+  .stepper-node::before {
+    content: "";
+    position: absolute;
+    top: 9px; left: -50%; width: 100%; height: 2px;
+    background: var(--border);
+    z-index: 0;
+  }
+  .stepper-node:first-child::before { display: none; }
+  .stepper-dot {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px var(--accent);
+    z-index: 1;
+    margin-bottom: 10px;
+  }
+  .stepper-phase { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .stepper-text { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+
+  /* --- Similar startups --- */
+  .startup-list { display: flex; flex-direction: column; gap: 12px; }
+  .startup-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg);
+    border-radius: 8px;
+  }
+  .startup-name { font-size: 13.5px; font-weight: 700; }
+  .startup-category { font-size: 12px; color: var(--muted); }
+
+  /* --- Footer --- */
+  footer {
+    max-width: 1180px;
+    margin: 0 auto 40px;
+    padding: 0 24px;
+  }
+  .disclaimer {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.6;
+    padding: 18px;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand"><span class="dot"></span>smart_failure_detection</div>
+  <div class="links">
+    <a href="index.html">Project Input</a>
+    <a href="#" class="active">Analysis Results</a>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <h1 id="projectTitle">Loading project...</h1>
+    <p class="subtitle" id="projectSubtitle"></p>
+  </div>
+
+  <!-- 1. Top ring stat cards: Failure Risk / Success Probability / Business Health / Confidence -->
+  <div class="grid grid-4">
+    <div class="card ring-card">
+      <div class="ring-label">Failure Risk</div>
+      <div class="ring-wrap" id="ringFailureRisk"></div>
+      <span class="ring-tag" id="ringFailureRiskTag"></span>
+    </div>
+    <div class="card ring-card">
+      <div class="ring-label">Success Probability</div>
+      <div class="ring-wrap" id="ringSuccessProb"></div>
+      <span class="ring-tag" id="ringSuccessProbTag"></span>
+    </div>
+    <div class="card ring-card">
+      <div class="ring-label">Business Health</div>
+      <div class="ring-wrap" id="ringHealth"></div>
+      <span class="ring-tag" id="ringHealthTag"></span>
+    </div>
+    <div class="card ring-card">
+      <div class="ring-label">Confidence Score</div>
+      <div class="ring-wrap" id="ringConfidence"></div>
+      <span class="ring-tag" id="ringConfidenceTag"></span>
+    </div>
+  </div>
+
+  <!-- 2. Risk Breakdown (donut + legend) + SWOT Analysis (single card, 2x2) -->
+  <div class="grid grid-split">
+    <div class="card">
+      <h2>Risk Breakdown</h2>
+      <p class="card-sub">Category-wise risk contribution</p>
+      <div class="donut-layout">
+        <div id="donutWrap"></div>
+        <div class="donut-legend" id="donutLegend"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>SWOT Analysis</h2>
+      <p class="card-sub">Strategic position at a glance</p>
+      <div class="swot-quadrants" id="swotGrid"></div>
+    </div>
+  </div>
+
+  <!-- 3. Top Recommendations (checklist) + Milestone Timeline (horizontal stepper) -->
+  <div class="grid grid-split">
+    <div class="card">
+      <h2>Top Recommendations</h2>
+      <p class="card-sub">Actions to reduce identified risk</p>
+      <div class="checklist" id="recommendationChecklist"></div>
+    </div>
+    <div class="card">
+      <h2>Milestone Timeline</h2>
+      <p class="card-sub">Suggested action plan</p>
+      <div class="stepper" id="timelineStepper"></div>
+    </div>
+  </div>
+
+  <!-- 4. Top Risk Factors & Insights -->
+  <div class="card" style="margin-bottom:20px;">
+    <h2>Top Risk Factors &amp; Insights</h2>
+    <p class="card-sub">Key drivers identified by the model</p>
+    <ul class="insight-list" id="insightList"></ul>
+  </div>
+
+  <!-- 5. AI Summary -->
+  <div class="card ai-summary-card" style="margin-bottom:20px;">
+    <span class="ai-summary-badge">✦ Summary</span>
+    <p class="ai-summary-text" id="aiSummaryText">Loading summary...</p>
+    <button class="ai-link-btn" id="viewExplanationBtn">View Detailed Explanation →</button>
+  </div>
+
+  <!-- 6. What-if Analysis + Similar Successful Startups -->
+  <div class="grid grid-split">
+    <div class="card whatif-card">
+      <h2>What-if Analysis</h2>
+      <p class="card-sub">Simulated impact of parameter changes</p>
+      <div id="whatifList"></div>
+    </div>
+    <div class="card">
+      <h2>Similar Successful Startups</h2>
+      <p class="card-sub">Comparable ventures in this industry</p>
+      <div class="startup-list" id="startupList"></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <p class="disclaimer">
+    This analysis is generated by an AI model for informational purposes only and does not constitute
+    financial, legal, or investment advice. Predictions are based on the information provided and general
+    market patterns; actual outcomes may vary. Please consult a qualified professional before making
+    business decisions.
+  </p>
+</footer>
+
+<script>
+/* ============================================================================
+   LIVE DATA FETCH
+   Reads project_id from the URL (?project_id=123), fetches real analysis
+   from the backend, and renders it. No hardcoded business logic here —
+   every value below comes straight from the API response.
+============================================================================ */
+const API_BASE = "http://localhost:8000";
+
+function showError(message) {
+  document.getElementById("projectTitle").textContent = "Unable to load analysis";
+  document.getElementById("projectSubtitle").innerHTML =
+    `${message} — <a href="index.html" style="color:var(--navy); font-weight:600;">go back to Project Input</a>`;
+}
+
+async function loadAnalysis() {
+  const params = new URLSearchParams(window.location.search);
+  const projectId = params.get("project_id");
+
+  if (!projectId) {
+    showError("No project_id was provided in the URL");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/analysis/${projectId}`);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.detail || `Request failed (${res.status})`);
+    }
+    const data = await res.json();
+    renderAll(data);
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+/* ===================== Render helpers ===================== */
+
+function riskTag(pct) {
+  if (pct >= 60) return { cls: "tag-danger", label: "High" };
+  if (pct >= 35) return { cls: "tag-warn", label: "Moderate" };
+  return { cls: "tag-success", label: "Low" };
+}
+
+function renderHeader(d) {
+  document.getElementById("projectTitle").textContent = d.project.name;
+  document.getElementById("projectSubtitle").textContent =
+    `${d.project.industry} · Analyzed on ${d.project.analysisDate}`;
+}
+
+function ringSvg(pct, color, size = 84, stroke = 8) {
+  const r = (size - stroke) / 2;
+  const c = Math.PI * 2 * r;
+  const offset = c * (1 - Math.min(Math.max(pct, 0), 100) / 100);
+  return `
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#e9e7f3" stroke-width="${stroke}"/>
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
+              stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${offset}"
+              transform="rotate(-90 ${size/2} ${size/2})"/>
+    </svg>
+  `;
+}
+
+function setRing(wrapId, tagId, pct, valueText, color, tagCls, tagText) {
+  const wrap = document.getElementById(wrapId);
+  wrap.innerHTML = ringSvg(pct, color) + `<span class="ring-value">${valueText}</span>`;
+  const tagEl = document.getElementById(tagId);
+  tagEl.textContent = tagText;
+  tagEl.className = `ring-tag ${tagCls}`;
+}
+
+function renderTopStats(d) {
+  const f = riskTag(d.overview.failureRiskPct);
+  setRing("ringFailureRisk", "ringFailureRiskTag", d.overview.failureRiskPct,
+    `${d.overview.failureRiskPct}%`, "#dc2626", f.cls, f.label + " Risk");
+
+  const successCls = d.overview.successProbabilityPct >= 50 ? "tag-success" : "tag-warn";
+  setRing("ringSuccessProb", "ringSuccessProbTag", d.overview.successProbabilityPct,
+    `${d.overview.successProbabilityPct}%`, "#16a34a",
+    successCls, d.overview.successProbabilityPct >= 50 ? "Favorable" : "Low");
+
+  const { score, max, status } = d.healthScore;
+  const healthCls = score >= 70 ? "tag-success" : score >= 40 ? "tag-warn" : "tag-danger";
+  setRing("ringHealth", "ringHealthTag", (score / max) * 100,
+    `${score}/${max}`, "#7c3aed", healthCls, status);
+
+  const confCls = d.model.confidencePct >= 80 ? "tag-success" : "tag-warn";
+  setRing("ringConfidence", "ringConfidenceTag", d.model.confidencePct,
+    `${d.model.confidencePct}%`, "#4f46e5", confCls, d.model.confidenceLabel);
+}
+
+const DONUT_COLORS = ["#dc2626", "#f59e0b", "#eab308", "#16a34a", "#4f46e5"];
+
+function renderRiskDonut(d) {
+  const items = d.riskBreakdown;
+  const total = items.reduce((sum, r) => sum + r.pct, 0) || 1;
+  const size = 160, r = 60, cx = size / 2, cy = size / 2, stroke = 26;
+  const circumference = 2 * Math.PI * r;
+
+  let cumulative = 0;
+  const segments = items.map((item, i) => {
+    const fraction = item.pct / total;
+    const dash = fraction * circumference;
+    const gap = circumference - dash;
+    const offset = -cumulative * circumference;
+    cumulative += fraction;
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${DONUT_COLORS[i % DONUT_COLORS.length]}"
+              stroke-width="${stroke}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${offset}"
+              transform="rotate(-90 ${cx} ${cy})"/>`;
+  }).join("");
+
+  document.getElementById("donutWrap").innerHTML = `
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${segments}</svg>
+  `;
+
+  const legend = document.getElementById("donutLegend");
+  legend.innerHTML = "";
+  items.forEach((item, i) => {
+    const row = document.createElement("div");
+    row.className = "legend-row";
+    row.innerHTML = `
+      <span class="legend-dot" style="background:${DONUT_COLORS[i % DONUT_COLORS.length]}"></span>
+      <span class="legend-name">${item.name.replace(" Risk", "")}</span>
+      <span class="legend-pct">${item.pct}%</span>
+    `;
+    legend.appendChild(row);
+  });
+}
+
+function renderInsights(d) {
+  const list = document.getElementById("insightList");
+  list.innerHTML = "";
+  d.insights.forEach(text => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="insight-dot"></span><span>${text}</span>`;
+    list.appendChild(li);
+  });
+}
+
+function renderAiSummary(d) {
+  document.getElementById("aiSummaryText").textContent = d.aiSummary;
+}
+
+function renderRecommendationChecklist(d) {
+  const container = document.getElementById("recommendationChecklist");
+  container.innerHTML = "";
+  d.mitigations.forEach(m => {
+    const item = document.createElement("div");
+    item.className = "checklist-item";
+    item.innerHTML = `
+      <span class="check-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </span>
+      <span>${m.title}</span>
+    `;
+    container.appendChild(item);
+  });
+}
+
+function renderWhatif(d) {
+  const container = document.getElementById("whatifList");
+  container.innerHTML = "";
+  d.whatif.forEach(w => {
+    const row = document.createElement("div");
+    row.className = "whatif-row";
+    const deltaCls = w.delta < 0 ? "delta-down" : "delta-up";
+    row.innerHTML = `
+      <div>
+        <div class="whatif-label">${w.label}</div>
+        <div class="whatif-change">${w.from} <span class="whatif-arrow">→</span> ${w.to}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="whatif-label">${w.metric}</div>
+        <div class="whatif-change">${w.fromPct}% <span class="whatif-arrow">→</span> ${w.toPct}%
+          <span class="whatif-delta ${deltaCls}">(${w.delta > 0 ? "+" : ""}${w.delta}%)</span>
+        </div>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function renderSwot(d) {
+  const groups = [
+    { key: "strengths", label: "Strengths", color: "var(--success)" },
+    { key: "weaknesses", label: "Weaknesses", color: "var(--danger)" },
+    { key: "opportunities", label: "Opportunities", color: "#4f46e5" },
+    { key: "threats", label: "Threats", color: "var(--warn)" },
+  ];
+  const grid = document.getElementById("swotGrid");
+  grid.innerHTML = "";
+  groups.forEach(g => {
+    const q = document.createElement("div");
+    q.className = "swot-q";
+    const items = d.swot[g.key].map(t => `<li>${t}</li>`).join("");
+    q.innerHTML = `
+      <h3><span class="swot-dot" style="background:${g.color}"></span>${g.label}</h3>
+      <ul>${items}</ul>
+    `;
+    grid.appendChild(q);
+  });
+}
+
+function renderTimeline(d) {
+  const container = document.getElementById("timelineStepper");
+  container.innerHTML = "";
+  d.timeline.forEach(t => {
+    const node = document.createElement("div");
+    node.className = "stepper-node";
+    node.innerHTML = `
+      <div class="stepper-dot"></div>
+      <div class="stepper-phase">${t.phase}</div>
+      <div class="stepper-text">${t.text}</div>
+    `;
+    container.appendChild(node);
+  });
+}
+
+function renderStartups(d) {
+  const container = document.getElementById("startupList");
+  container.innerHTML = "";
+  d.similarStartups.forEach(s => {
+    const item = document.createElement("div");
+    item.className = "startup-item";
+    item.innerHTML = `
+      <span class="startup-name">${s.name}</span>
+      <span class="startup-category">${s.category}</span>
+    `;
+    container.appendChild(item);
+  });
+}
+
+function renderAll(data) {
+  renderHeader(data);
+  renderTopStats(data);
+  renderRiskDonut(data);
+  renderSwot(data);
+  renderRecommendationChecklist(data);
+  renderTimeline(data);
+  renderInsights(data);
+  renderAiSummary(data);
+  renderWhatif(data);
+  renderStartups(data);
+}
+
+document.getElementById("viewExplanationBtn").addEventListener("click", () => {
+  // Placeholder — wire to a modal or dedicated explanation view once the
+  // LLM Layer's "Business Strategy Advisor" output is available via API.
+  alert("Detailed explanation view will be wired once the LLM explanation endpoint is available.");
+});
+
+/* ===================== Bootstrap ===================== */
+loadAnalysis();
+</script>
+
+</body>
+</html>
