@@ -1,4 +1,3 @@
-
 import os
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -7,9 +6,13 @@ import psycopg2
 import psycopg2.extras
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 app = FastAPI(title="Project Submission API")
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,7 +53,9 @@ class ProjectSubmission(BaseModel):
         except (InvalidOperation, TypeError):
             raise ValueError("budget must be a valid number")
 
-
+@app.get("/", include_in_schema=False)
+def home():
+    return FileResponse("index.html")
 @app.post("/api/projects")
 def submit_project(payload: ProjectSubmission):
     """Insert a new project submission. No auth/user layer yet (Week 1-2 scope only)."""
@@ -106,19 +111,6 @@ def health():
     return {"status": "ok", "time": datetime.utcnow().isoformat()}
 
 
-# ============================================================================
-# MOCK ANALYSIS ENDPOINT
-#
-# The real Risk Assessment & Scoring Engine (Milestone 2, Weeks 3-4) does not
-# exist yet. This generates deterministic placeholder output — seeded by
-# project_id so the same project always returns the same numbers instead of
-# flickering on every reload — purely so the frontend pipeline (submit ->
-# redirect -> fetch -> render) works end-to-end today.
-#
-# TODO (Milestone 2): replace generate_mock_analysis() with real calls into
-# Risk_Assessments, SWOT_Analysis, Success_Predictions, and Recommendations
-# tables, populated by the actual scoring model + LLM layer.
-# ============================================================================
 
 import random
 
@@ -210,3 +202,7 @@ def get_analysis(project_id: int):
         raise HTTPException(status_code=404, detail=f"No project found with id {project_id}")
 
     return generate_mock_analysis(project)
+
+@app.get("/analysis-results.html", include_in_schema=False)
+def analysis_results():
+    return FileResponse("analysis-results.html")
