@@ -55,6 +55,14 @@ class ProjectSubmission(BaseModel):
 
 @app.get("/", include_in_schema=False)
 def home():
+    return FileResponse("overview.html")
+
+@app.get("/overview.html", include_in_schema=False)
+def overview():
+    return FileResponse("overview.html")
+
+@app.get("/index.html", include_in_schema=False)
+def project_input():
     return FileResponse("index.html")
 @app.post("/api/projects")
 def submit_project(payload: ProjectSubmission):
