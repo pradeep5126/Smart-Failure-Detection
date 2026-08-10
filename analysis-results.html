@@ -94,6 +94,103 @@
   .page-header h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 4px; }
   .page-header .subtitle { color: var(--muted); font-size: 13.5px; }
 
+  /* --- Tab switcher --- */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    padding: 10px 18px;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .tab-btn:hover { color: var(--ink); }
+  .tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+
+  /* --- Competitor landscape cards --- */
+  .competitor-list { display: flex; flex-direction: column; gap: 12px; }
+  .competitor-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--bg);
+    border-radius: 9px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .competitor-name { font-size: 13.5px; font-weight: 700; }
+  .competitor-position { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .competitor-risk-tag {
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    flex-shrink: 0;
+  }
+
+  /* --- Milestone 2: overall score + horizontal bars (distinct viz from the donut) --- */
+  .m2-overall-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 22px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .m2-overall-score {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+    min-width: 64px;
+  }
+  .m2-overall-label { font-size: 12.5px; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+
+  .score-bars { display: flex; flex-direction: column; gap: 14px; }
+  .score-bar-row { display: flex; align-items: center; gap: 12px; }
+  .score-bar-name { width: 190px; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); flex-shrink: 0; }
+  .score-bar-track { flex: 1; height: 10px; background: var(--bg); border-radius: 6px; overflow: hidden; }
+  .score-bar-fill { display: block; height: 100%; border-radius: 6px; }
+  .score-bar-value { width: 38px; text-align: right; font-size: 12.5px; font-weight: 700; color: var(--text); flex-shrink: 0; }
+
+  .m2-factor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px; }
+  @media (max-width: 640px) { .m2-factor-grid { grid-template-columns: 1fr; } }
+  .m2-factor-heading { font-size: 12.5px; font-weight: 700; margin-bottom: 8px; }
+  .m2-factor-heading.positive { color: var(--success); }
+  .m2-factor-heading.attention { color: var(--danger); }
+  .m2-factor-list { list-style: none; }
+  .m2-factor-list li {
+    font-size: 12.5px;
+    color: #33404f;
+    line-height: 1.5;
+    padding-left: 12px;
+    position: relative;
+    margin-bottom: 6px;
+  }
+  .m2-factor-list li::before {
+    content: "";
+    position: absolute; left: 0; top: 7px;
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--muted);
+  }
+  .m2-conclusion {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+
   .card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -311,6 +408,7 @@
 <nav>
   <div class="brand"><span class="dot"></span>smart_failure_detection</div>
   <div class="links">
+    <a href="overview.html">Overview</a>
     <a href="index.html">Project Input</a>
     <a href="#" class="active">Analysis Results</a>
   </div>
@@ -322,33 +420,42 @@
     <p class="subtitle" id="projectSubtitle"></p>
   </div>
 
-  <!-- 1. Top ring stat cards: Failure Risk / Success Probability / Business Health / Confidence -->
-  <div class="grid grid-4">
-    <div class="card ring-card">
-      <div class="ring-label">Failure Risk</div>
-      <div class="ring-wrap" id="ringFailureRisk"></div>
-      <span class="ring-tag" id="ringFailureRiskTag"></span>
-    </div>
-    <div class="card ring-card">
-      <div class="ring-label">Success Probability</div>
-      <div class="ring-wrap" id="ringSuccessProb"></div>
-      <span class="ring-tag" id="ringSuccessProbTag"></span>
-    </div>
-    <div class="card ring-card">
-      <div class="ring-label">Business Health</div>
-      <div class="ring-wrap" id="ringHealth"></div>
-      <span class="ring-tag" id="ringHealthTag"></span>
-    </div>
-    <div class="card ring-card">
-      <div class="ring-label">Confidence Score</div>
-      <div class="ring-wrap" id="ringConfidence"></div>
-      <span class="ring-tag" id="ringConfidenceTag"></span>
-    </div>
+  <!-- Tab switcher -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tabBtnRisk" data-tab="risk">Risk Assessment</button>
+    <button class="tab-btn" id="tabBtnCompetition" data-tab="competition">Competition Assessment</button>
+    <button class="tab-btn" id="tabBtnMilestone2" data-tab="milestone2">SWOT Analysis</button>
   </div>
 
-  <!-- 2. Risk Breakdown (donut + legend) + SWOT Analysis (single card, 2x2) -->
-  <div class="grid grid-split">
-    <div class="card">
+  <!-- ===================== TAB: RISK ASSESSMENT ===================== -->
+  <div class="tab-panel" id="tabPanelRisk">
+
+    <!-- 1. Top ring stat cards: Failure Risk / Success Probability / Business Health / Confidence -->
+    <div class="grid grid-4">
+      <div class="card ring-card">
+        <div class="ring-label">Failure Risk</div>
+        <div class="ring-wrap" id="ringFailureRisk"></div>
+        <span class="ring-tag" id="ringFailureRiskTag"></span>
+      </div>
+      <div class="card ring-card">
+        <div class="ring-label">Success Probability</div>
+        <div class="ring-wrap" id="ringSuccessProb"></div>
+        <span class="ring-tag" id="ringSuccessProbTag"></span>
+      </div>
+      <div class="card ring-card">
+        <div class="ring-label">Business Health</div>
+        <div class="ring-wrap" id="ringHealth"></div>
+        <span class="ring-tag" id="ringHealthTag"></span>
+      </div>
+      <div class="card ring-card">
+        <div class="ring-label">Confidence Score</div>
+        <div class="ring-wrap" id="ringConfidence"></div>
+        <span class="ring-tag" id="ringConfidenceTag"></span>
+      </div>
+    </div>
+
+    <!-- 2. Risk Breakdown (donut + legend) -->
+    <div class="card" style="margin-bottom:20px;">
       <h2>Risk Breakdown</h2>
       <p class="card-sub">Category-wise risk contribution</p>
       <div class="donut-layout">
@@ -356,53 +463,109 @@
         <div class="donut-legend" id="donutLegend"></div>
       </div>
     </div>
-    <div class="card">
-      <h2>SWOT Analysis</h2>
-      <p class="card-sub">Strategic position at a glance</p>
-      <div class="swot-quadrants" id="swotGrid"></div>
-    </div>
-  </div>
 
-  <!-- 3. Top Recommendations (checklist) + Milestone Timeline (horizontal stepper) -->
-  <div class="grid grid-split">
-    <div class="card">
+    <!-- 3. Top Recommendations (checklist) -->
+    <div class="card" style="margin-bottom:20px;">
       <h2>Top Recommendations</h2>
       <p class="card-sub">Actions to reduce identified risk</p>
       <div class="checklist" id="recommendationChecklist"></div>
     </div>
-    <div class="card">
-      <h2>Milestone Timeline</h2>
-      <p class="card-sub">Suggested action plan</p>
-      <div class="stepper" id="timelineStepper"></div>
+
+    <!-- 4. Top Risk Factors & Insights -->
+    <div class="card" style="margin-bottom:20px;">
+      <h2>Top Risk Factors &amp; Insights</h2>
+      <p class="card-sub">Key drivers identified by the model</p>
+      <ul class="insight-list" id="insightList"></ul>
     </div>
-  </div>
 
-  <!-- 4. Top Risk Factors & Insights -->
-  <div class="card" style="margin-bottom:20px;">
-    <h2>Top Risk Factors &amp; Insights</h2>
-    <p class="card-sub">Key drivers identified by the model</p>
-    <ul class="insight-list" id="insightList"></ul>
-  </div>
+    <!-- 5. AI Summary -->
+    <div class="card ai-summary-card" style="margin-bottom:20px;">
+      <span class="ai-summary-badge">✦ Summary</span>
+      <p class="ai-summary-text" id="aiSummaryText">Loading summary...</p>
+      <button class="ai-link-btn" id="viewExplanationBtn">View Detailed Explanation →</button>
+    </div>
 
-  <!-- 5. AI Summary -->
-  <div class="card ai-summary-card" style="margin-bottom:20px;">
-    <span class="ai-summary-badge">✦ Summary</span>
-    <p class="ai-summary-text" id="aiSummaryText">Loading summary...</p>
-    <button class="ai-link-btn" id="viewExplanationBtn">View Detailed Explanation →</button>
-  </div>
-
-  <!-- 6. What-if Analysis + Similar Successful Startups -->
-  <div class="grid grid-split">
-    <div class="card whatif-card">
+    <!-- 6. What-if Analysis -->
+    <div class="card whatif-card" style="margin-bottom:20px;">
       <h2>What-if Analysis</h2>
       <p class="card-sub">Simulated impact of parameter changes</p>
       <div id="whatifList"></div>
     </div>
+
+  </div>
+
+  <!-- ===================== TAB: COMPETITION ASSESSMENT ===================== -->
+  <div class="tab-panel" id="tabPanelCompetition" style="display:none;">
+
+    <div class="card" style="margin-bottom:20px;">
+      <h2>Competitor Landscape</h2>
+      <p class="card-sub">Key players identified for this industry and market position</p>
+      <div class="competitor-list" id="competitorList"></div>
+    </div>
+
     <div class="card">
       <h2>Similar Successful Startups</h2>
       <p class="card-sub">Comparable ventures in this industry</p>
       <div class="startup-list" id="startupList"></div>
     </div>
+
+  </div>
+
+  <!-- ===================== TAB: MILESTONE 2 — RISK ASSESSMENT & SWOT ANALYSIS ===================== -->
+  <div class="tab-panel" id="tabPanelMilestone2" style="display:none;">
+
+    <p class="card-sub" style="margin: -6px 0 18px; font-size: 12.5px;">
+      Based on your actual project details, not placeholder data.
+    </p>
+
+    <!-- 1. Risk Scoring Engine -->
+    <div class="card" style="margin-bottom:20px;">
+      <h2>1. Risk Scoring Engine</h2>
+      <p class="card-sub">Calculated from your project details</p>
+      <div class="m2-overall-row">
+        <div class="m2-overall-score" id="m2OverallScore">—</div>
+        <div>
+          <div class="m2-overall-label">Overall Risk Score</div>
+          <span class="ring-tag" id="m2OverallLevelTag"></span>
+        </div>
+      </div>
+      <div class="score-bars" id="m2RiskBars"></div>
+    </div>
+
+    <!-- 2. SWOT Analysis -->
+    <div class="card" style="margin-bottom:20px;">
+      <h2>2. SWOT Analysis</h2>
+      <p class="card-sub">Generated from the risk profile above — varies by submission</p>
+      <div class="swot-quadrants" id="m2SwotGrid"></div>
+    </div>
+
+    <!-- 3. Project Feasibility Assessment -->
+    <div class="card">
+      <h2>3. Project Feasibility Assessment</h2>
+      <p class="card-sub">Based on the risk scores above</p>
+      <div class="m2-overall-row">
+        <div class="m2-overall-score" id="m2FeasScore">—</div>
+        <div>
+          <div class="m2-overall-label">Overall Feasibility Score</div>
+          <span class="ring-tag" id="m2FeasLevelTag"></span>
+        </div>
+      </div>
+      <div class="score-bars" id="m2FeasBars"></div>
+
+      <div class="m2-factor-grid">
+        <div>
+          <h3 class="m2-factor-heading positive">Positive Factors</h3>
+          <ul class="m2-factor-list" id="m2PositiveFactors"></ul>
+        </div>
+        <div>
+          <h3 class="m2-factor-heading attention">Areas Requiring Attention</h3>
+          <ul class="m2-factor-list" id="m2AttentionAreas"></ul>
+        </div>
+      </div>
+
+      <p class="m2-conclusion" id="m2Conclusion"></p>
+    </div>
+
   </div>
 </main>
 
@@ -422,7 +585,7 @@
    from the backend, and renders it. No hardcoded business logic here —
    every value below comes straight from the API response.
 ============================================================================ */
-const API_BASE = "";
+const API_BASE = "http://localhost:8000";
 
 function showError(message) {
   document.getElementById("projectTitle").textContent = "Unable to load analysis";
@@ -599,42 +762,6 @@ function renderWhatif(d) {
   });
 }
 
-function renderSwot(d) {
-  const groups = [
-    { key: "strengths", label: "Strengths", color: "var(--success)" },
-    { key: "weaknesses", label: "Weaknesses", color: "var(--danger)" },
-    { key: "opportunities", label: "Opportunities", color: "#4f46e5" },
-    { key: "threats", label: "Threats", color: "var(--warn)" },
-  ];
-  const grid = document.getElementById("swotGrid");
-  grid.innerHTML = "";
-  groups.forEach(g => {
-    const q = document.createElement("div");
-    q.className = "swot-q";
-    const items = d.swot[g.key].map(t => `<li>${t}</li>`).join("");
-    q.innerHTML = `
-      <h3><span class="swot-dot" style="background:${g.color}"></span>${g.label}</h3>
-      <ul>${items}</ul>
-    `;
-    grid.appendChild(q);
-  });
-}
-
-function renderTimeline(d) {
-  const container = document.getElementById("timelineStepper");
-  container.innerHTML = "";
-  d.timeline.forEach(t => {
-    const node = document.createElement("div");
-    node.className = "stepper-node";
-    node.innerHTML = `
-      <div class="stepper-dot"></div>
-      <div class="stepper-phase">${t.phase}</div>
-      <div class="stepper-text">${t.text}</div>
-    `;
-    container.appendChild(node);
-  });
-}
-
 function renderStartups(d) {
   const container = document.getElementById("startupList");
   container.innerHTML = "";
@@ -649,23 +776,192 @@ function renderStartups(d) {
   });
 }
 
+function renderCompetitors(d) {
+  const container = document.getElementById("competitorList");
+  container.innerHTML = "";
+
+  // The current backend does not yet provide live competitor intelligence.
+  // Show a clear message instead of throwing an undefined.forEach() error.
+  const competitors = Array.isArray(d.competitors) ? d.competitors : [];
+
+  if (competitors.length === 0) {
+    container.innerHTML = `
+      <div class="competitor-item">
+        <div>
+          <div class="competitor-name">Competition data not available yet</div>
+          <div class="competitor-position">
+            Competitor intelligence will be added when the market research layer is connected.
+          </div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const riskCls = { Low: "tag-success", Moderate: "tag-warn", High: "tag-danger" };
+  competitors.forEach(c => {
+    const item = document.createElement("div");
+    item.className = "competitor-item";
+    item.innerHTML = `
+      <div>
+        <div class="competitor-name">${c.name}</div>
+        <div class="competitor-position">${c.marketPosition}</div>
+      </div>
+      <span class="competitor-risk-tag ${riskCls[c.competitiveRisk] || "tag-warn"}">${c.competitiveRisk} Risk</span>
+    `;
+    container.appendChild(item);
+  });
+}
+
+function scoreColor(score) {
+  return score >= 60 ? "#dc2626" : score >= 35 ? "#f59e0b" : "#16a34a"; // risk-style: higher = worse
+}
+function feasColor(score) {
+  return score >= 65 ? "#16a34a" : score >= 40 ? "#f59e0b" : "#dc2626"; // feasibility-style: higher = better
+}
+function levelTagClass(level) {
+  return level === "High" ? "tag-danger" : level === "Moderate" ? "tag-warn" : "tag-success";
+}
+function feasLevelTagClass(level) {
+  return level === "High" ? "tag-success" : level === "Moderate" ? "tag-warn" : "tag-danger";
+}
+
+function renderScoreBars(containerId, categories, colorFn) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+  (Array.isArray(categories) ? categories : []).forEach(cat => {
+    const row = document.createElement("div");
+    row.className = "score-bar-row";
+    row.innerHTML = `
+      <span class="score-bar-name">${cat.name}</span>
+      <span class="score-bar-track"><span class="score-bar-fill" style="width:${cat.score}%; background:${colorFn(cat.score)}"></span></span>
+      <span class="score-bar-value">${cat.score}</span>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function renderMilestone2(d) {
+  const m2 = d.milestone2;
+  if (!m2) {
+    return; // guards against an older backend response without this key
+  }
+
+  // 1. Risk Scoring Engine
+  // Backend fields: overallScore, riskLevel, riskBreakdown, confidenceScore
+  document.getElementById("m2OverallScore").textContent = m2.riskScoring.overallScore;
+
+  const riskLevelTag = document.getElementById("m2OverallLevelTag");
+  const riskLevel = m2.riskScoring.riskLevel || "Moderate Risk";
+  riskLevelTag.textContent =
+    `${riskLevel} · ${m2.riskScoring.confidenceScore}% confidence`;
+
+  const riskTagClass =
+    riskLevel.includes("Critical") || riskLevel.includes("High")
+      ? "tag-danger"
+      : riskLevel.includes("Moderate")
+        ? "tag-warn"
+        : "tag-success";
+
+  riskLevelTag.className = `ring-tag ${riskTagClass}`;
+  renderScoreBars("m2RiskBars", m2.riskScoring.riskBreakdown || [], scoreColor);
+
+  // 2. SWOT Analysis
+  const groups = [
+    { key: "strengths", label: "Strengths", color: "var(--success)" },
+    { key: "weaknesses", label: "Weaknesses", color: "var(--danger)" },
+    { key: "opportunities", label: "Opportunities", color: "#4f46e5" },
+    { key: "threats", label: "Threats", color: "var(--warn)" },
+  ];
+
+  const grid = document.getElementById("m2SwotGrid");
+  grid.innerHTML = "";
+
+  groups.forEach(g => {
+    const q = document.createElement("div");
+    q.className = "swot-q";
+    const values = Array.isArray(m2.swot?.[g.key]) ? m2.swot[g.key] : [];
+    const items = values.map(t => `<li>${t}</li>`).join("");
+    q.innerHTML =
+      `<h3><span class="swot-dot" style="background:${g.color}"></span>${g.label}</h3>` +
+      `<ul>${items || "<li>No information available yet.</li>"}</ul>`;
+    grid.appendChild(q);
+  });
+
+  // 3. Project Feasibility Assessment
+  // Backend fields: overallScore, level, breakdown, positiveFactors,
+  // attentionAreas, summary
+  document.getElementById("m2FeasScore").textContent =
+    m2.feasibility.overallScore;
+
+  const feasLevelTag = document.getElementById("m2FeasLevelTag");
+  const feasLevel = m2.feasibility.level || "Needs Attention";
+  feasLevelTag.textContent = `${feasLevel}`;
+  feasLevelTag.className = `ring-tag ${
+    feasLevel.includes("Highly") || feasLevel === "Feasible"
+      ? "tag-success"
+      : feasLevel.includes("Attention")
+        ? "tag-warn"
+        : "tag-danger"
+  }`;
+
+  renderScoreBars(
+    "m2FeasBars",
+    m2.feasibility.breakdown || [],
+    feasColor
+  );
+
+  document.getElementById("m2PositiveFactors").innerHTML =
+    (m2.feasibility.positiveFactors || [])
+      .map(f => `<li>${f}</li>`)
+      .join("") || "<li>No positive factors identified yet.</li>";
+
+  document.getElementById("m2AttentionAreas").innerHTML =
+    (m2.feasibility.attentionAreas || [])
+      .map(f => `<li>${f}</li>`)
+      .join("") || "<li>No specific attention areas identified.</li>";
+
+  document.getElementById("m2Conclusion").textContent =
+    m2.feasibility.summary || "";
+}
+
 function renderAll(data) {
   renderHeader(data);
   renderTopStats(data);
   renderRiskDonut(data);
-  renderSwot(data);
   renderRecommendationChecklist(data);
-  renderTimeline(data);
   renderInsights(data);
   renderAiSummary(data);
   renderWhatif(data);
   renderStartups(data);
+  renderCompetitors(data);
+  renderMilestone2(data);
 }
 
 document.getElementById("viewExplanationBtn").addEventListener("click", () => {
   // Placeholder — wire to a modal or dedicated explanation view once the
   // LLM Layer's "Business Strategy Advisor" output is available via API.
   alert("Detailed explanation view will be wired once the LLM explanation endpoint is available.");
+});
+
+/* ===================== Tab switching ===================== */
+const tabButtons = {
+  risk: document.getElementById("tabBtnRisk"),
+  competition: document.getElementById("tabBtnCompetition"),
+  milestone2: document.getElementById("tabBtnMilestone2"),
+};
+const tabPanels = {
+  risk: document.getElementById("tabPanelRisk"),
+  competition: document.getElementById("tabPanelCompetition"),
+  milestone2: document.getElementById("tabPanelMilestone2"),
+};
+Object.entries(tabButtons).forEach(([key, btn]) => {
+  btn.addEventListener("click", () => {
+    Object.keys(tabButtons).forEach(k => {
+      tabButtons[k].classList.toggle("active", k === key);
+      tabPanels[k].style.display = k === key ? "block" : "none";
+    });
+  });
 });
 
 /* ===================== Bootstrap ===================== */
