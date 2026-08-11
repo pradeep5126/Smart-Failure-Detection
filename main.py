@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
@@ -249,6 +250,19 @@ def generate_mock_analysis(project: dict) -> dict:
 # Milestone 2: Risk Assessment, SWOT & Feasibility
 # =========================
 
+# =========================
+# Milestone 2: Risk Assessment, SWOT & Feasibility
+#
+# Each _xxx_risk() function returns (score, reasons) where reasons is a list
+# of {"text": ..., "positive": bool} explaining WHAT specifically drove that
+# score. SWOT is then built directly from those reasons — not from generic
+# "risk is high/low" templates — so two projects with the same overall score
+# but different underlying signals get genuinely different SWOT text.
+# =========================
+
+import math
+
+
 def _clamp(value: float, low: float = 0.0, high: float = 100.0) -> int:
     return int(round(max(low, min(high, value))))
 
@@ -257,113 +271,357 @@ def _word_count(text: str) -> int:
     return len((text or "").split())
 
 
-def _matches_any(text: str, keywords) -> bool:
+def _keyword_present(text: str, keyword: str) -> bool:
+    """Case-insensitive whole-word/phrase matching; avoids substring false positives."""
     text = (text or "").lower()
-    return any(keyword.lower() in text for keyword in keywords)
+    keyword = (keyword or "").strip().lower()
+    if not text or not keyword:
+        return False
+
+    pattern = r"(?<!\w)" + r"\s+".join(re.escape(part) for part in keyword.split()) + r"(?!\w)"
+    return re.search(pattern, text, flags=re.IGNORECASE) is not None
 
 
-def _financial_risk(project: dict) -> int:
+def _count_matches(text: str, keywords) -> int:
+    """Count distinct keyword signals, not repeated occurrences."""
+    return sum(1 for keyword in keywords if _keyword_present(text, keyword))
+
+
+def _matches_any(text: str, keywords) -> bool:
+    return _count_matches(text, keywords) > 0
+
+
+# ---- Industry tier lookups (shared across market/competition scoring) ----
+_HIGH_COMPETITION_INDUSTRIES = [
+    "food delivery", "grocery delivery", "grocery", "ride sharing", "ride-hailing",
+    "hyperlocal delivery", "e-commerce", "ecommerce", "d2c fashion", "fashion",
+    "social media", "quick commerce",
+]
+_MODERATE_COMPETITION_INDUSTRIES = [
+    "fintech", "healthtech", "edtech", "real estate", "travel", "logistics",
+    "fitness", "payments", "insurtech", "proptech",
+]
+_LOW_COMPETITION_INDUSTRIES = [
+    "b2b saas", "enterprise software", "developer tools", "developer tool",
+    "vertical saas", "niche saas", "api platform", "industrial", "deep tech",
+    "biotech", "climate tech", "agritech",
+]
+
+
+def _financial_risk(project: dict):
     budget = float(project["budget"])
     description = (project.get("description") or "").lower()
     business_model = (project.get("business_model") or "").lower()
+    reasons = []
 
-    risk = 55.0
+    # Budget is one signal, not the definition of financial health.
+    budget_clamped = max(20_000, min(budget, 50_000_000))
+    log_budget = math.log10(budget_clamped)
+    log_min, log_max = math.log10(20_000), math.log10(50_000_000)
+    norm = (log_budget - log_min) / (log_max - log_min)
+    base = 68 - norm * 30
 
-    if budget < 100000:
-        risk += 15
-    elif budget < 500000:
-        risk += 5
-    elif budget >= 2000000:
-        risk -= 8
+    if budget < 150_000:
+        reasons.append({
+            "text": f"Budget of ₹{budget:,.0f} is relatively limited and may constrain execution runway.",
+            "positive": False,
+        })
+    elif budget >= 3_000_000:
+        reasons.append({
+            "text": f"Budget of ₹{budget:,.0f} provides a stronger execution runway, assuming spending is controlled.",
+            "positive": True,
+        })
 
-    if _matches_any(description, ["revenue", "profit", "subscription", "recurring", "margin", "cash flow"]):
-        risk -= 6
-    if _matches_any(description, ["high cost", "capital intensive", "burn", "debt"]):
-        risk += 10
-    if _matches_any(business_model, ["subscription", "saas", "service"]):
-        risk -= 5
+    revenue_kw = [
+        "revenue", "profit", "subscription", "recurring revenue", "recurring",
+        "margin", "cash flow", "break-even", "profitable", "paying customers",
+        "customers", "sales", "traction", "monetization",
+    ]
+    funding_kw = ["funded", "funding", "investment", "grant", "seed round", "angel", "venture capital"]
+    burn_kw = [
+        "high cost", "high costs", "capital intensive", "capital-intensive",
+        "burn", "debt", "loss-making", "unprofitable", "cash-strapped",
+        "high operating cost", "high operating costs",
+    ]
 
-    return _clamp(risk)
+    rev_hits = _count_matches(description, revenue_kw)
+    fund_hits = _count_matches(description, funding_kw)
+    burn_hits = _count_matches(description, burn_kw)
 
+    base -= min(rev_hits, 5) * 4.0
+    base -= min(fund_hits, 3) * 3.0
+    base += min(burn_hits, 4) * 7.0
 
-def _market_risk(project: dict) -> int:
+    if rev_hits >= 2:
+        reasons.append({
+            "text": "The description provides evidence of revenue, customers, monetization, or margins, reducing near-term financial uncertainty.",
+            "positive": True,
+        })
+    elif rev_hits == 0:
+        reasons.append({
+            "text": "No clear revenue, customer, or monetization evidence is stated, increasing financial uncertainty.",
+            "positive": False,
+        })
+
+    if fund_hits >= 1:
+        reasons.append({
+            "text": "Funding or investment is mentioned, which can improve available runway.",
+            "positive": True,
+        })
+
+    if burn_hits >= 1:
+        reasons.append({
+            "text": "High costs, burn, debt, or capital intensity are mentioned, increasing financial pressure.",
+            "positive": False,
+        })
+
+    model_modifier = {
+        "saas": -5,
+        "subscription": -4,
+        "service": -2,
+        "marketplace": 5,
+        "d2c": 4,
+        "b2c": 2,
+        "hardware": 7,
+        "manufacturing": 8,
+    }
+    original_model = project.get("business_model") or business_model
+    for key, val in model_modifier.items():
+        if _keyword_present(business_model, key):
+            base += val
+            if val < 0:
+                reasons.append({
+                    "text": f"{original_model} model can be relatively capital-efficient, easing some financial pressure.",
+                    "positive": True,
+                })
+            else:
+                reasons.append({
+                    "text": f"{original_model} model can require higher upfront or operating capital.",
+                    "positive": False,
+                })
+            break
+
+    # Capital-intensive models without stated revenue or funding deserve
+    # additional financial caution.
+    if (
+        any(_keyword_present(business_model, k) for k in ["hardware", "manufacturing", "marketplace", "d2c"])
+        and rev_hits == 0
+        and fund_hits == 0
+    ):
+        base += 5
+        reasons.append({
+            "text": "The business model may require meaningful operating capital without stated revenue or funding support.",
+            "positive": False,
+        })
+
+    return _clamp(base), reasons
+
+def _market_risk(project: dict):
     market = project.get("target_market") or ""
+    description = (project.get("description") or "").lower()
+    industry = (project.get("industry_sector") or "").lower()
+    reasons = []
+
+    # Continuous curve on target-market specificity (word count) instead of 2 buckets.
+    wc = _word_count(market)
+    wc_clamped = max(0, min(wc, 14))
+    base = 76 - (wc_clamped / 14) * 48  # ~76 (vague) down to ~28 (specific)
+
+    if wc <= 2:
+        reasons.append({"text": f"Target market ('{market}') is very broadly defined and needs segmentation.", "positive": False})
+    elif wc >= 8:
+        reasons.append({"text": f"Target market is specifically defined ('{market}'), supporting focused go-to-market.", "positive": True})
+
+    validation_kw = ["customer interviews", "market research", "survey", "validated", "pilot", "traction", "waitlist", "beta users", "demand validated"]
+    mass_kw = ["everyone", "global", "all customers", "mass market", "anyone", "general public", "broad audience"]
+
+    val_hits = _count_matches(description, validation_kw)
+    mass_hits = _count_matches(description, mass_kw)
+
+    base -= min(val_hits, 3) * 5
+    base += min(mass_hits, 2) * 7
+
+    if val_hits >= 1:
+        reasons.append({"text": "Description references market validation activity (research, pilot, or traction).", "positive": True})
+    if mass_hits >= 1:
+        reasons.append({"text": "Target market is described as broad ('everyone' / 'mass market'), which is hard to serve well early on.", "positive": False})
+
+    if any(k in industry for k in _HIGH_COMPETITION_INDUSTRIES):
+        base += 9
+        reasons.append({"text": f"'{project.get('industry_sector')}' is a structurally difficult, high-saturation market.", "positive": False})
+    elif any(k in industry for k in _LOW_COMPETITION_INDUSTRIES):
+        base -= 7
+        reasons.append({"text": f"'{project.get('industry_sector')}' is a comparatively under-saturated market segment.", "positive": True})
+
+    return _clamp(base), reasons
+
+
+def _competition_risk(project: dict):
+    description = (project.get("description") or "").lower()
+    industry = (project.get("industry_sector") or "").lower()
+    business_model = (project.get("business_model") or "").lower()
+    reasons = []
+    base = 52.0
+
+    if any(k in industry for k in _HIGH_COMPETITION_INDUSTRIES):
+        base += 15
+        reasons.append({"text": f"'{project.get('industry_sector')}' has intense competitive activity from established players.", "positive": False})
+    elif any(k in industry for k in _MODERATE_COMPETITION_INDUSTRIES):
+        base += 4
+    elif any(k in industry for k in _LOW_COMPETITION_INDUSTRIES):
+        base -= 10
+        reasons.append({"text": f"'{project.get('industry_sector')}' has relatively fewer direct competitors.", "positive": True})
+
+    diff_kw = ["unique", "differentiation", "niche", "underserved", "advantage", "proprietary", "patent", "moat", "first mover", "exclusive"]
+    crowd_kw = ["crowded", "saturated", "many competitors", "competitive", "commoditized", "red ocean"]
+
+    diff_hits = _count_matches(description, diff_kw)
+    crowd_hits = _count_matches(description, crowd_kw)
+
+    base -= min(diff_hits, 4) * 4.5
+    base += min(crowd_hits, 3) * 6
+
+    if diff_hits >= 2:
+        reasons.append({"text": "Description articulates a specific competitive advantage or differentiation angle.", "positive": True})
+    elif diff_hits == 0 and crowd_hits == 0:
+        reasons.append({"text": "Description doesn't yet name a specific competitive advantage over existing players.", "positive": False})
+    if crowd_hits >= 1:
+        reasons.append({"text": "Description itself acknowledges a crowded or highly competitive space.", "positive": False})
+
+    model_modifier = {"marketplace": 6, "b2c": 3, "d2c": 4, "saas": -3, "b2b": -3, "enterprise": -5}
+    for key, val in model_modifier.items():
+        if key in business_model:
+            base += val
+
+    return _clamp(base), reasons
+
+
+def _technical_risk(project: dict):
+    description = (project.get("description") or "").lower()
+    reasons = []
+    base = 42.0
+
+    high_complexity_kw = ["hardware", "iot", "blockchain", "biotech", "genomics", "robotics", "autonomous", "computer vision", "deep learning", "neural network", "chip", "semiconductor"]
+    moderate_complexity_kw = ["ai", "machine learning", "real-time", "data pipeline", "recommendation engine", "predictive model", "distributed system", "large scale"]
+    low_complexity_kw = ["simple app", "landing page", "content platform", "booking system", "standard web app", "basic website"]
+
+    high_hits = _count_matches(description, high_complexity_kw)
+    mod_hits = _count_matches(description, moderate_complexity_kw)
+    low_hits = _count_matches(description, low_complexity_kw)
+
+    base += min(high_hits, 3) * 11
+    base += min(mod_hits, 3) * 6
+    base -= min(low_hits, 2) * 9
+
+    if high_hits >= 1:
+        reasons.append({"text": "Description involves hardware, IoT, blockchain, or similarly deep technical complexity.", "positive": False})
+    elif mod_hits >= 1:
+        reasons.append({"text": "Description involves AI/ML or real-time systems, adding moderate technical complexity.", "positive": False})
+    elif low_hits >= 1:
+        reasons.append({"text": "Proposed solution is technically straightforward to build.", "positive": True})
+
+    maturity_kw = ["prototype", "mvp", "tested", "working prototype", "technology validated", "beta", "in production", "live product", "deployed"]
+    maturity_hits = _count_matches(description, maturity_kw)
+    base -= min(maturity_hits, 3) * 7
+
+    if maturity_hits >= 1:
+        reasons.append({"text": "An existing prototype, MVP, or deployed version reduces technical uncertainty.", "positive": True})
+
+    wc = _word_count(description)
+    if wc < 15:
+        base += 12
+        reasons.append({"text": "Description is too short to assess the technical approach with confidence.", "positive": False})
+    elif wc >= 80:
+        base -= 5
+
+    return _clamp(base), reasons
+
+
+def _operational_risk(project: dict):
+    description = (project.get("description") or "").lower()
+    business_model = (project.get("business_model") or "").lower()
+    reasons = []
+    base = 48.0
+
+    complex_model_kw = ["marketplace", "logistics", "manufacturing", "hardware", "delivery", "multi-vendor", "two-sided", "b2b2c"]
+    simple_model_kw = ["saas", "subscription", "digital product", "software only", "content"]
+
+    if any(k in business_model for k in complex_model_kw):
+        base += 13
+        reasons.append({"text": f"{project.get('business_model')} model involves multiple moving parts (logistics, vendors, or delivery), raising execution risk.", "positive": False})
+    elif any(k in business_model for k in simple_model_kw):
+        base -= 6
+        reasons.append({"text": f"{project.get('business_model')} model has a comparatively simple, single-sided operating structure.", "positive": True})
+
+    ops_positive_kw = ["team", "operations", "supply chain", "process", "partnership", "hired", "operational plan", "vendor agreements", "fulfillment", "logistics partner"]
+    ops_negative_kw = ["solo founder", "no team", "outsourced", "undefined process", "early stage team"]
+
+    pos_hits = _count_matches(description, ops_positive_kw)
+    neg_hits = _count_matches(description, ops_negative_kw)
+
+    base -= min(pos_hits, 4) * 4.5
+    base += min(neg_hits, 3) * 7
+
+    if pos_hits >= 2:
+        reasons.append({"text": "Description references a defined team, process, or operational plan.", "positive": True})
+    if neg_hits >= 1:
+        reasons.append({"text": "Description suggests limited team or process maturity at this stage.", "positive": False})
+
+    wc = _word_count(description)
+    if wc < 20:
+        base += 8
+    elif wc >= 60:
+        base -= 4
+
+    return _clamp(base), reasons
+
+
+def _confidence_score(project: dict, risk_scores: dict) -> int:
+    """Estimate confidence from information completeness, not score similarity."""
     description = project.get("description") or ""
-    risk = 55.0
-
-    if _word_count(market) < 3:
-        risk += 8
-    elif _word_count(market) >= 8:
-        risk -= 5
-
-    if _matches_any(description, ["customer", "demand", "market research", "validation", "pilot", "traction"]):
-        risk -= 8
-    if _matches_any(description, ["global", "everyone", "all customers", "mass market"]):
-        risk += 6
-
-    return _clamp(risk)
-
-
-def _competition_risk(project: dict) -> int:
-    description = project.get("description") or ""
-    industry = project.get("industry_sector") or ""
-    risk = 55.0
-
-    if _matches_any(description, ["competitor", "differentiation", "unique", "niche", "advantage", "moat"]):
-        risk -= 10
-    if _matches_any(description, ["crowded", "saturated", "many competitors", "competitive"]):
-        risk += 10
-    if _matches_any(industry, ["fintech", "e-commerce", "social media", "food delivery", "marketplace"]):
-        risk += 5
-
-    return _clamp(risk)
-
-
-def _technical_risk(project: dict) -> int:
-    description = project.get("description") or ""
-    risk = 50.0
-
-    if _matches_any(description, ["ai", "machine learning", "hardware", "iot", "blockchain", "deep learning", "real-time"]):
-        risk += 10
-    if _matches_any(description, ["prototype", "mvp", "tested", "working prototype", "technology validated"]):
-        risk -= 8
-    if _word_count(description) < 30:
-        risk += 8
-
-    return _clamp(risk)
-
-
-def _operational_risk(project: dict) -> int:
-    description = project.get("description") or ""
+    target_market = project.get("target_market") or ""
     business_model = project.get("business_model") or ""
-    risk = 52.0
+    industry = project.get("industry_sector") or ""
 
-    if _matches_any(description, ["team", "operations", "supply chain", "logistics", "process", "partnership"]):
-        risk -= 7
-    if _matches_any(business_model, ["marketplace", "delivery", "manufacturing", "logistics"]):
-        risk += 8
-    if _word_count(description) < 30:
-        risk += 6
+    score = 45
+    score += min(20, _word_count(description) // 4)
+    score += min(10, _word_count(target_market))
 
-    return _clamp(risk)
+    if len(business_model.split()) >= 2:
+        score += 5
+    if len(industry.split()) >= 2:
+        score += 3
 
+    evidence_keywords = [
+        "customer", "customers", "revenue", "funding", "prototype", "mvp",
+        "pilot", "traction", "validated", "beta", "deployed", "team",
+        "partnership", "operational plan",
+    ]
+    evidence_hits = _count_matches(description, evidence_keywords)
+    score += min(12, evidence_hits * 2)
 
-def _confidence_score(project: dict, risks: dict) -> int:
-    description_quality = min(20, _word_count(project.get("description") or "") // 4)
-    market_quality = min(10, _word_count(project.get("target_market") or ""))
-    risk_spread = max(risks.values()) - min(risks.values())
-    consistency = max(0, 10 - int(risk_spread / 10))
-
-    return _clamp(55 + description_quality + market_quality + consistency, 0, 95)
-
+    return _clamp(score, 0, 95)
 
 def compute_milestone2_analysis(project: dict) -> dict:
+    financial_score, financial_reasons = _financial_risk(project)
+    market_score, market_reasons = _market_risk(project)
+    competition_score, competition_reasons = _competition_risk(project)
+    technical_score, technical_reasons = _technical_risk(project)
+    operational_score, operational_reasons = _operational_risk(project)
+
     risks = {
-        "Financial Risk": _financial_risk(project),
-        "Market Risk": _market_risk(project),
-        "Competition Risk": _competition_risk(project),
-        "Technical Risk": _technical_risk(project),
-        "Operational Risk": _operational_risk(project),
+        "Financial Risk": financial_score,
+        "Market Risk": market_score,
+        "Competition Risk": competition_score,
+        "Technical Risk": technical_score,
+        "Operational Risk": operational_score,
+    }
+    all_reasons = {
+        "Financial Risk": financial_reasons,
+        "Market Risk": market_reasons,
+        "Competition Risk": competition_reasons,
+        "Technical Risk": technical_reasons,
+        "Operational Risk": operational_reasons,
     }
 
     weights = {
@@ -385,7 +643,6 @@ def compute_milestone2_analysis(project: dict) -> dict:
     else:
         risk_level = "Low Risk"
 
-    # Lower risk means higher feasibility.
     feasibility = {
         "Financial Feasibility": 100 - risks["Financial Risk"],
         "Market Feasibility": 100 - risks["Market Risk"],
@@ -404,65 +661,57 @@ def compute_milestone2_analysis(project: dict) -> dict:
     else:
         feasibility_level = "Low Feasibility"
 
-    description = project.get("description") or ""
-    business_model = project.get("business_model") or ""
-    market = project.get("target_market") or ""
+    # ---- SWOT built directly from the specific reasons each category produced ----
+    description = (project.get("description") or "").lower()
 
-    strengths = []
-    weaknesses = []
+    strengths, weaknesses = [], []
+    # Sort by how far each category's score is from a neutral 50, so the most
+    # decisive signals surface first rather than an arbitrary category order.
+    category_order = sorted(risks.keys(), key=lambda name: abs(risks[name] - 50), reverse=True)
+    for name in category_order:
+        for reason in all_reasons[name]:
+            target = strengths if reason["positive"] else weaknesses
+            if reason["text"] not in target:
+                target.append(reason["text"])
+
     opportunities = []
+    if _matches_any(description, ["customer interviews", "market research", "survey", "validated", "pilot", "traction", "waitlist", "beta users", "demand validated"]):
+        opportunities.append("Existing validation signals can be expanded into stronger customer traction and demand evidence.")
+    else:
+        opportunities.append("Customer interviews, a pilot, or a waitlist would create evidence to validate demand before scaling.")
+
+    if _matches_any(description, ["niche", "underserved", "unique", "differentiation", "advantage", "proprietary", "patent", "moat", "first mover", "exclusive"]):
+        opportunities.append("The stated differentiation can be strengthened into a clearer and more defensible market position.")
+    else:
+        opportunities.append("A clearly defined differentiation angle could reduce competitive exposure and improve positioning.")
+
+    if competition_score <= 40:
+        opportunities.append(f"Relatively lower competitive pressure in '{project.get('industry_sector')}' may provide room to establish an early position.")
+
+    if technical_score <= 40 and _matches_any(description, ["prototype", "mvp", "tested", "beta", "deployed", "live product"]):
+        opportunities.append("Existing technical maturity creates an opportunity to validate the product with real users and iterate faster.")
+
     threats = []
-
-    if risks["Market Risk"] <= 45:
-        strengths.append("The target market is described with useful specificity.")
-    else:
-        weaknesses.append("The target market needs clearer definition and validation.")
-
-    if risks["Financial Risk"] <= 45:
-        strengths.append("The available budget profile supports the stated direction.")
-    else:
-        weaknesses.append("Financial assumptions or funding requirements need closer review.")
-
-    if risks["Competition Risk"] <= 45:
-        strengths.append("The description indicates attention to differentiation or market positioning.")
-    else:
-        threats.append("Competitive pressure may make customer acquisition or differentiation difficult.")
-
-    if risks["Technical Risk"] <= 45:
-        strengths.append("The proposed solution appears technically manageable from the information provided.")
-    else:
-        weaknesses.append("Technical complexity may increase development time, cost, or execution risk.")
-
-    if _matches_any(description, ["customer", "demand", "validation", "pilot", "traction"]):
-        opportunities.append("Early customer validation can strengthen the opportunity and reduce uncertainty.")
-    else:
-        opportunities.append("Customer validation can reveal demand and improve the opportunity assessment.")
-
-    if _matches_any(description, ["niche", "underserved", "unique", "differentiation", "advantage"]):
-        opportunities.append("A focused differentiation strategy may create room in the target market.")
-    else:
-        opportunities.append("A focused niche or clearer differentiation could strengthen market positioning.")
-
-    if risks["Operational Risk"] >= 61:
-        threats.append("Operational complexity could make scaling difficult.")
-    else:
-        threats.append("Execution quality and operational discipline will remain important as the project scales.")
+    if competition_score >= 60:
+        threats.append(f"High competitive intensity in '{project.get('industry_sector')}' may pressure customer acquisition cost and pricing.")
+    if financial_score >= 60:
+        threats.append("Current budget may not sustain the business through an extended pre-revenue phase.")
+    if operational_score >= 60:
+        threats.append("Operational complexity of the chosen model raises execution and coordination risk as the project scales.")
+    if technical_score >= 60:
+        threats.append("Technical complexity could extend development timelines and increase the cost of reaching a working product.")
+    if not threats:
+        threats.append("Standard market and execution risks apply; no single factor stands out as unusually severe.")
 
     if not strengths:
-        strengths.append("The project has a defined concept that can be evaluated further.")
+        strengths.append("The project has a clearly defined concept that can be evaluated further as it develops.")
     if not weaknesses:
-        weaknesses.append("More evidence is needed before treating the current assumptions as validated.")
-    if not threats:
-        threats.append("Changes in customer demand or competitive conditions could affect the project.")
+        weaknesses.append("No major weaknesses were flagged from the submission alone — deeper diligence is still recommended.")
 
     confidence = _confidence_score(project, risks)
 
-    positive_factors = [
-        name for name, score in feasibility.items() if score >= 60
-    ]
-    attention_areas = [
-        name for name, score in feasibility.items() if score < 60
-    ]
+    positive_factors = [name for name, score in feasibility.items() if score >= 60]
+    attention_areas = [name for name, score in feasibility.items() if score < 60]
 
     if overall_feasibility >= 80:
         feasibility_summary = "The project appears highly feasible based on the information provided."
@@ -516,8 +765,72 @@ def get_analysis(project_id: int):
     if project is None:
         raise HTTPException(status_code=404, detail=f"No project found with id {project_id}")
 
-    result = generate_mock_analysis(project)
-    result["milestone2"] = compute_milestone2_analysis(project)
+    milestone2 = compute_milestone2_analysis(project)
+
+    # Milestone 2 is now the authoritative analysis; no random/mock
+    # risk values are used by this endpoint.
+    confidence = milestone2["riskScoring"]["confidenceScore"]
+    attention_areas = milestone2["feasibility"]["attentionAreas"]
+
+    result = {
+        "project": {
+            "name": project["project_name"],
+            "industry": project["industry_sector"],
+            "analysisDate": datetime.utcnow().strftime("%Y-%m-%d"),
+        },
+        "model": {
+            "name": "Rule-Based Risk Scoring Engine — Milestone 2",
+            "confidencePct": confidence,
+            "confidenceLabel": (
+                "High Confidence" if confidence >= 75
+                else "Moderate Confidence" if confidence >= 55
+                else "Limited Confidence"
+            ),
+        },
+        "overview": {
+            "failureRiskPct": milestone2["riskScoring"]["overallScore"],
+            "riskLevel": milestone2["riskScoring"]["riskLevel"],
+            "successProbabilityPct": _clamp(100 - milestone2["riskScoring"]["overallScore"]),
+        },
+        "riskBreakdown": [
+            {"name": item["name"], "score": item["score"], "pct": item["score"]}
+            for item in milestone2["riskScoring"]["riskBreakdown"]
+        ],
+        "insights": milestone2["swot"]["weaknesses"][:3] + milestone2["swot"]["strengths"][:2],
+        "aiSummary": milestone2["feasibility"]["summary"],
+        "mitigations": [
+            {
+                "icon": "trend",
+                "title": "Address the highest-priority area",
+                "desc": area,
+            }
+            for area in attention_areas[:3]
+        ],
+        "swot": milestone2["swot"],
+        "healthScore": {
+            "score": milestone2["feasibility"]["overallScore"],
+            "max": 100,
+            "status": milestone2["feasibility"]["level"],
+        },
+        "whatif": [
+            {
+                "label": "Increase Budget",
+                "from": f"₹{float(project['budget']):,.0f}",
+                "to": f"₹{float(project['budget']) * 1.5:,.0f}",
+                "metric": "Failure Risk",
+                "fromPct": milestone2["riskScoring"]["overallScore"],
+                "toPct": _clamp(max(0, milestone2["riskScoring"]["overallScore"] - 8)),
+                "delta": -8,
+            }
+        ],
+        "similarStartups": [
+            {"name": "Comparable Venture A", "category": project["industry_sector"]},
+            {"name": "Comparable Venture B", "category": project["industry_sector"]},
+            {"name": "Comparable Venture C", "category": project["industry_sector"]},
+        ],
+        "competitors": build_competitor_assessment(project),
+        "milestone2": milestone2,
+    }
     return result
 
 @app.get("/analysis-results.html", include_in_schema=False)
