@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
+from strategy_engine import get_or_generate_strategy
 
 app = FastAPI(title="Project Submission API")
 if os.path.exists("static"):
@@ -832,6 +833,43 @@ def get_analysis(project_id: int):
         "milestone2": milestone2,
     }
     return result
+
+
+@app.get("/api/analysis/{project_id}/strategy")
+def get_project_strategy(project_id: int, force_refresh: bool = False):
+    conn = get_connection()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM projects WHERE project_id = %s", (project_id,))
+            project = cur.fetchone()
+    finally:
+        conn.close()
+
+    if project is None:
+        raise HTTPException(status_code=404, detail=f"No project found with id {project_id}")
+
+    milestone2 = compute_milestone2_analysis(project)
+    strategy = get_or_generate_strategy(project, milestone2, force_refresh=force_refresh)
+    return strategy
+
+
+@app.post("/api/analysis/{project_id}/strategy/regenerate")
+def regenerate_project_strategy(project_id: int):
+    conn = get_connection()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM projects WHERE project_id = %s", (project_id,))
+            project = cur.fetchone()
+    finally:
+        conn.close()
+
+    if project is None:
+        raise HTTPException(status_code=404, detail=f"No project found with id {project_id}")
+
+    milestone2 = compute_milestone2_analysis(project)
+    strategy = get_or_generate_strategy(project, milestone2, force_refresh=True)
+    return strategy
+
 
 @app.get("/analysis-results.html", include_in_schema=False)
 def analysis_results():

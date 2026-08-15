@@ -6,386 +6,844 @@
 <title>smart_failure_detection — Analysis Results</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* ===== Design tokens — purple SaaS dashboard palette, matching index.html ===== */
+  /* ===== Linear Dark Studio Design Tokens ===== */
   :root {
-    --navy: #1e1b2e;        /* "ink" */
-    --navy-light: #4a4560;  /* "ink-soft" */
-    --accent: #7c3aed;
-    --accent-2: #4f46e5;
-    --accent-dark: #6d28d9;
-    --bg: #f6f5fb;
-    --card: #ffffff;
-    --text: #1e1b2e;
-    --muted: #6b7280;
-    --border: #e9e7f3;
-    --success: #16a34a;
-    --success-bg: #e8f8ee;
-    --warn: #b45309;
-    --warn-bg: #fef3e2;
-    --danger: #dc2626;
-    --danger-bg: #fdecec;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
+    --bg-base: #09090b;
+    --bg-surface: #101014;
+    --bg-card: #141418;
+    --bg-card-subtle: #1a1a20;
+    --bg-glass: rgba(12, 12, 16, 0.88);
+
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --border-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+    --accent: #8b5cf6;
+    --accent-hover: #9d74f7;
+    --accent-dark: #7c3aed;
+    --accent-glow: rgba(139, 92, 246, 0.15);
+    --accent-dim: rgba(139, 92, 246, 0.10);
+
+    --cyan: #06b6d4;
+    --cyan-dim: rgba(6, 182, 212, 0.10);
+
+    --risk-danger: #f43f5e;
+    --risk-danger-bg: rgba(244, 63, 94, 0.08);
+    --risk-danger-border: rgba(244, 63, 94, 0.20);
+
+    --risk-warn: #f59e0b;
+    --risk-warn-bg: rgba(245, 158, 11, 0.08);
+    --risk-warn-border: rgba(245, 158, 11, 0.20);
+
+    --risk-success: #10b981;
+    --risk-success-bg: rgba(16, 185, 129, 0.08);
+    --risk-success-border: rgba(16, 185, 129, 0.20);
+
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+
+    --font-ui: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 18px;
+    --radius-pill: 9999px;
   }
 
-  /* --- Nav bar (identical to index.html) --- */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+    background-image: 
+      radial-gradient(ellipse 70% 40% at 50% -10%, rgba(139, 92, 246, 0.08), transparent 70%);
+  }
+
+  /* --- Navigation --- */
   nav {
-    background: #ffffff;
-    color: var(--navy);
+    background: var(--bg-glass);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border-subtle);
+    height: 58px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 0 32px;
-    height: 64px;
-    border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 100;
   }
   nav .brand {
     display: flex;
     align-items: center;
-    gap: 9px;
-    font-weight: 700;
-    font-size: 16px;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 14px;
     letter-spacing: -0.2px;
-    margin-right: 44px;
-    color: var(--navy);
+    color: var(--text-primary);
+    text-decoration: none;
   }
-  nav .brand .dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 0 4px rgba(124,58,237,0.15);
+  .brand-glyph {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent), #6366f1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 11px;
+  }
+  nav .links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-surface);
+    padding: 3px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border-subtle);
   }
   nav .links a {
-    color: var(--muted);
+    color: var(--text-secondary);
     text-decoration: none;
-    margin-right: 24px;
-    font-size: 14px;
+    font-size: 12.5px;
     font-weight: 500;
-    padding: 22px 2px;
-    border-bottom: 2px solid transparent;
-    transition: color 0.15s ease, border-color 0.15s ease;
+    padding: 5px 14px;
+    border-radius: var(--radius-pill);
+    transition: color 0.15s ease, background 0.15s ease;
   }
   nav .links a.active {
-    color: var(--accent);
-    border-bottom: 2px solid var(--accent);
-    font-weight: 600;
+    background: var(--bg-card-subtle);
+    color: var(--text-primary);
+    box-shadow: var(--border-highlight);
   }
-  nav .links a:hover { color: var(--navy); }
+  nav .links a:hover:not(.active) { color: var(--text-primary); }
 
   /* --- Page layout --- */
   main {
     max-width: 1180px;
-    margin: 40px auto 80px;
+    margin: 32px auto 80px;
     padding: 0 24px;
   }
 
-  .page-header { margin-bottom: 28px; }
-  .page-header h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 4px; }
-  .page-header .subtitle { color: var(--muted); font-size: 13.5px; }
-
-  /* --- Tab switcher --- */
-  .tab-bar {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 24px;
-    border-bottom: 1px solid var(--border);
-  }
-  .tab-btn {
-    background: none;
-    border: none;
-    padding: 10px 18px;
-    font-family: inherit;
-    font-size: 13.5px;
-    font-weight: 600;
-    color: var(--muted);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-    transition: color 0.15s ease, border-color 0.15s ease;
-  }
-  .tab-btn:hover { color: var(--ink); }
-  .tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
-
-  /* --- Competitor landscape cards --- */
-  .competitor-list { display: flex; flex-direction: column; gap: 12px; }
-  .competitor-item {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 14px;
-    background: var(--bg);
-    border-radius: 9px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .competitor-name { font-size: 13.5px; font-weight: 700; }
-  .competitor-position { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .competitor-risk-tag {
-    font-size: 11.5px;
-    font-weight: 700;
-    padding: 3px 10px;
-    border-radius: 20px;
-    flex-shrink: 0;
-  }
-
-  /* --- Milestone 2: ring gauge + radar chart, plus horizontal bars for precise numbers --- */
-  .m2-viz-row {
+  .page-header {
     display: flex;
     align-items: center;
-    justify-content: space-around;
-    flex-wrap: wrap;
-    gap: 24px;
+    justify-content: space-between;
     margin-bottom: 24px;
-    padding-bottom: 22px;
-    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 16px;
   }
-  .m2-gauge-block { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
-  .m2-ring-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
-  .m2-ring-wrap .ring-value { position: absolute; font-size: 26px; font-weight: 700; color: var(--text); }
-  .m2-overall-label { font-size: 12.5px; color: var(--muted); font-weight: 600; margin: 10px 0 6px; }
-  .m2-radar-block { display: flex; flex-direction: column; align-items: center; }
-  .m2-radar-label { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+  .page-header-text h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .page-header-text .subtitle {
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
 
-  .score-bars { display: flex; flex-direction: column; gap: 14px; }
-  .score-bar-row { display: flex; align-items: center; gap: 12px; }
-  .score-bar-name { width: 190px; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); flex-shrink: 0; }
-  .score-bar-track { flex: 1; height: 10px; background: var(--bg); border-radius: 6px; overflow: hidden; }
-  .score-bar-fill { display: block; height: 100%; border-radius: 6px; }
-  .score-bar-value { width: 38px; text-align: right; font-size: 12.5px; font-weight: 700; color: var(--text); flex-shrink: 0; }
+  .btn-primary {
+    background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 12px var(--accent-glow);
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+  .btn-primary:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 18px rgba(139, 92, 246, 0.28);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active { transform: translateY(0) scale(0.98); }
 
-  .m2-factor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px; }
-  @media (max-width: 640px) { .m2-factor-grid { grid-template-columns: 1fr; } }
-  .m2-factor-heading { font-size: 12.5px; font-weight: 700; margin-bottom: 8px; }
-  .m2-factor-heading.positive { color: var(--success); }
-  .m2-factor-heading.attention { color: var(--danger); }
-  .m2-factor-list { list-style: none; }
-  .m2-factor-list li {
+  .btn-secondary {
+    background: var(--bg-card-subtle);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    padding: 8px 14px;
+    border-radius: var(--radius-md);
     font-size: 12.5px;
-    color: #33404f;
-    line-height: 1.5;
-    padding-left: 12px;
-    position: relative;
-    margin-bottom: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
   }
-  .m2-factor-list li::before {
-    content: "";
-    position: absolute; left: 0; top: 7px;
-    width: 4px; height: 4px; border-radius: 50%;
-    background: var(--muted);
+  .btn-secondary:hover {
+    background: #23232b;
+    border-color: var(--border-strong);
   }
-  .m2-conclusion {
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-    font-size: 13.5px;
-    line-height: 1.6;
-    color: var(--ink-soft);
+
+  /* --- Sliding Pill Tab switcher --- */
+  .tab-bar {
+    display: flex;
+    background: #0e0e12;
+    border: 1px solid var(--border-subtle);
+    padding: 4px;
+    border-radius: var(--radius-pill);
+    gap: 4px;
+    margin-bottom: 20px;
+    width: fit-content;
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 7px 18px;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .tab-btn:hover { color: #fff; }
+  .tab-btn.active {
+    background: var(--bg-card-subtle);
+    color: #ffffff;
+    box-shadow: var(--border-highlight);
   }
 
   .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 24px 26px;
-    box-shadow: 0 1px 2px rgba(30,27,46,0.04), 0 6px 20px rgba(30,27,46,0.04);
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    box-shadow: var(--border-highlight), 0 2px 10px rgba(0, 0, 0, 0.3);
   }
   .card h2 {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 14.5px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+    color: #fff;
     margin-bottom: 4px;
   }
   .card .card-sub {
-    color: var(--muted);
-    font-size: 12.5px;
-    margin-bottom: 18px;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 16px;
   }
 
   /* --- Grid system --- */
-  .grid { display: grid; gap: 20px; margin-bottom: 20px; }
-  .grid-3 { grid-template-columns: repeat(3, 1fr); }
-  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid { display: grid; gap: 16px; margin-bottom: 20px; }
   .grid-4 { grid-template-columns: repeat(4, 1fr); }
-  .grid-split { grid-template-columns: 1.15fr 1fr; align-items: start; }
-  @media (max-width: 900px) {
-    .grid-3, .grid-4, .grid-2, .grid-split { grid-template-columns: 1fr; }
+  .grid-split { grid-template-columns: 1fr 1.08fr; }
+  @media (max-width: 860px) {
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .grid-split { grid-template-columns: 1fr; }
   }
 
-  /* --- Top ring stat cards (Failure Risk / Success Probability / Business Health / Confidence) --- */
-  .ring-card { text-align: center; padding: 22px 16px; }
-  .ring-card .ring-label { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 12px; }
-  .ring-card .ring-wrap { display: flex; align-items: center; justify-content: center; position: relative; }
+  .mono-val {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* --- Top ring stat cards --- */
+  .ring-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 18px 14px;
+  }
+  .ring-card .ring-label {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-family: var(--font-mono);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .ring-card .ring-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 84px;
+    height: 84px;
+  }
   .ring-card .ring-value {
     position: absolute;
-    font-size: 22px;
+    font-size: 19px;
     font-weight: 700;
-    color: var(--text);
+    font-family: var(--font-mono);
+    color: #fff;
   }
-  .ring-card .ring-tag {
-    display: inline-block;
-    margin-top: 12px;
-    font-size: 11.5px;
-    font-weight: 700;
-    padding: 3px 10px;
-    border-radius: 20px;
+  .ring-tag {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    padding: 2.5px 8px;
+    border-radius: var(--radius-pill);
   }
-  .tag-danger { background: var(--danger-bg); color: var(--danger); }
-  .tag-warn   { background: var(--warn-bg); color: var(--warn); }
-  .tag-success{ background: var(--success-bg); color: var(--success); }
+  .tag-danger { background: var(--risk-danger-bg); color: var(--risk-danger); border: 1px solid var(--risk-danger-border); }
+  .tag-warn   { background: var(--risk-warn-bg); color: var(--risk-warn); border: 1px solid var(--risk-warn-border); }
+  .tag-success{ background: var(--risk-success-bg); color: var(--risk-success); border: 1px solid var(--risk-success-border); }
+  .tag-violet { background: var(--accent-dim); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.25); }
+  .tag-cyan   { background: var(--cyan-dim); color: #67e8f9; border: 1px solid rgba(6,182,212,0.25); }
 
-  /* --- Risk breakdown: donut + legend --- */
-  .donut-layout { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
-  .donut-legend { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 10px; }
-  .legend-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
-  .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-  .legend-name { flex: 1; color: var(--ink-soft, var(--navy-light)); font-weight: 500; }
-  .legend-pct { font-weight: 700; color: var(--text); }
-
-  /* --- Insights list --- */
-  .insight-list { list-style: none; }
-  .insight-list li {
-    display: flex;
-    gap: 10px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 13.5px;
-    line-height: 1.5;
+  /* --- AI Summary Card --- */
+  .ai-summary-card {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.10) 0%, rgba(17, 17, 20, 0.8) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.24);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--border-highlight);
   }
-  .insight-list li:last-child { border-bottom: none; }
-  .insight-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--accent);
-    margin-top: 6px;
-    flex-shrink: 0;
-  }
-
-  /* --- AI Summary --- */
-  .ai-summary-card { position: relative; }
   .ai-summary-badge {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     font-size: 11px;
     font-weight: 700;
-    color: #fff;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    padding: 4px 10px;
-    border-radius: 20px;
-    margin-bottom: 14px;
+    color: #c4b5fd;
+    margin-bottom: 8px;
     letter-spacing: 0.3px;
   }
   .ai-summary-text {
-    font-size: 13.5px;
-    line-height: 1.7;
-    color: #33404f;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e4e4e7;
+    margin-bottom: 12px;
   }
   .ai-link-btn {
-    margin-top: 16px;
-    background: none;
+    background: transparent;
     border: none;
-    color: var(--accent);
-    font-size: 13.5px;
-    font-weight: 700;
+    color: #c4b5fd;
+    font-size: 12.5px;
+    font-weight: 600;
     cursor: pointer;
     padding: 0;
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    transition: color 0.15s ease;
   }
-  .ai-link-btn:hover { color: var(--accent-dark); }
+  .ai-link-btn:hover { color: #fff; }
 
-  /* --- Top Recommendations checklist --- */
-  .checklist { display: flex; flex-direction: column; gap: 12px; }
-  .checklist-item { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-soft, var(--navy-light)); }
+  /* --- Risk Breakdown: Donut + Legend --- */
+  .donut-layout { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .donut-legend { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 7px; }
+  .legend-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+  .legend-label-wrap { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .legend-name { color: var(--text-secondary); font-weight: 500; }
+  .legend-pct { font-family: var(--font-mono); font-weight: 700; color: #fff; }
+
+  /* --- Priority Recommendations Checklist --- */
+  .checklist { display: flex; flex-direction: column; gap: 10px; }
+  .checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+    font-size: 12.5px;
+    color: var(--text-primary);
+  }
   .checklist-item .check-icon {
-    width: 18px; height: 18px; border-radius: 50%;
-    background: var(--success-bg);
-    display: flex; align-items: center; justify-content: center;
+    color: var(--risk-success);
+    font-size: 15px;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* --- Top Risk Factors & Insights --- */
+  .insight-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .insight-list li {
+    display: flex;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+  .insight-list li:last-child { border-bottom: none; }
+  .insight-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--risk-danger);
+    margin-top: 7px;
     flex-shrink: 0;
   }
-  .checklist-item .check-icon svg { width: 11px; height: 11px; stroke: var(--success); }
 
-  /* --- SWOT quadrant grid (single card) --- */
-  .swot-quadrants { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 22px; }
+  /* --- What-if Analysis --- */
+  .whatif-card { display: flex; flex-direction: column; gap: 10px; }
+  .whatif-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .whatif-label { font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); text-transform: uppercase; }
+  .whatif-change { font-size: 13px; font-weight: 500; color: #fff; }
+  .whatif-arrow { color: var(--text-muted); margin: 0 4px; }
+  .whatif-delta { font-size: 12.5px; font-weight: 700; font-family: var(--font-mono); }
+  .delta-down { color: var(--risk-success); }
+  .delta-up { color: var(--risk-danger); }
+
+  /* --- Competitors & Startups --- */
+  .competitor-list, .startup-list { display: flex; flex-direction: column; gap: 10px; }
+  .competitor-item, .startup-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+  }
+  .competitor-name, .startup-name { font-size: 13.5px; font-weight: 600; color: #fff; }
+  .competitor-position, .startup-category { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* =========================================================================
+     MILESTONE 2: DEDICATED RISK SCORING ENGINE PANEL & SWOT / FEASIBILITY
+     ========================================================================= */
+  .scoring-engine-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    box-shadow: var(--border-highlight), 0 2px 10px rgba(0,0,0,0.3);
+    margin-bottom: 20px;
+  }
+  .engine-viz-grid {
+    display: grid;
+    grid-template-columns: 200px 220px 1fr;
+    gap: 24px;
+    align-items: center;
+    padding-bottom: 20px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  @media (max-width: 960px) {
+    .engine-viz-grid { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  }
+  .engine-gauge-block, .engine-radar-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .score-bars { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+  .score-bar-row { display: flex; align-items: center; gap: 12px; font-size: 12.5px; }
+  .score-bar-name { width: 140px; color: var(--text-secondary); font-weight: 500; }
+  .score-bar-track { flex: 1; height: 7px; background: var(--bg-surface); border-radius: 4px; overflow: hidden; border: 1px solid var(--border-subtle); }
+  .score-bar-fill { display: block; height: 100%; border-radius: 4px; }
+  .score-bar-value { width: 36px; text-align: right; font-family: var(--font-mono); font-weight: 700; color: #fff; }
+
+  /* 2x2 SWOT */
+  .swot-quadrants { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 640px) { .swot-quadrants { grid-template-columns: 1fr; } }
+  .swot-q {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+  }
   .swot-q h3 {
     font-size: 12.5px; font-weight: 700; margin-bottom: 8px;
     display: flex; align-items: center; gap: 6px;
   }
-  .swot-dot { width: 7px; height: 7px; border-radius: 50%; }
-  .swot-q ul { list-style: none; }
+  .swot-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .swot-q ul { list-style: none; padding-left: 0; }
   .swot-q li {
-    font-size: 12.5px;
-    color: #33404f;
+    font-size: 12px;
+    color: var(--text-secondary);
     line-height: 1.5;
     padding-left: 12px;
     position: relative;
     margin-bottom: 5px;
   }
   .swot-q li::before {
-    content: "";
-    position: absolute; left: 0; top: 7px;
-    width: 4px; height: 4px; border-radius: 50%;
-    background: var(--muted);
+    content: "•";
+    position: absolute; left: 0; top: 0;
+    color: var(--text-muted);
   }
 
-  /* --- What-if analysis --- */
-  .whatif-card { display: flex; flex-direction: column; gap: 14px; }
-  .whatif-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 14px;
-    background: var(--bg);
-    border-radius: 9px;
+  .m2-factor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  @media (max-width: 640px) { .m2-factor-grid { grid-template-columns: 1fr; } }
+  .m2-factor-heading { font-size: 12.5px; font-weight: 700; margin-bottom: 8px; }
+  .m2-factor-heading.positive { color: var(--risk-success); }
+  .m2-factor-heading.attention { color: var(--risk-danger); }
+  .m2-factor-list { list-style: none; padding-left: 0; }
+  .m2-factor-list li {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    padding-left: 12px;
+    position: relative;
+    margin-bottom: 6px;
+  }
+  .m2-factor-list li::before {
+    content: "•";
+    position: absolute; left: 0; top: 0;
+    color: var(--text-muted);
+  }
+  .m2-conclusion {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-subtle);
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+
+  /* =========================================================================
+     MILESTONE 3: AI STRATEGIC ADVISOR (EXECUTIVE SLIDE-OVER DRAWER)
+     ========================================================================= */
+  .strategy-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  .strategy-modal-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+  .strategy-modal-box {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 860px;
+    background: #0d0d11;
+    border-left: 1px solid var(--border-strong);
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.8);
+    z-index: 210;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .strategy-modal-overlay.active .strategy-modal-box {
+    transform: translateX(0);
+  }
+
+  .strategy-modal-header {
+    padding: 16px 24px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .strat-head-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .strat-icon-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    border: 1px solid rgba(139,92,246,0.25);
+  }
+  .strat-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.2px;
+  }
+  .strat-meta-badges {
+    display: flex;
+    gap: 6px;
+    margin-top: 3px;
     flex-wrap: wrap;
+  }
+  .strat-badge {
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    padding: 2px 7px;
+    border-radius: var(--radius-pill);
+    background: var(--bg-card-subtle);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+  }
+  .strat-badge.provider { background: var(--cyan-dim); color: #67e8f9; border-color: rgba(6,182,212,0.25); }
+  .strat-badge.orchestrator { background: var(--accent-dim); color: #c4b5fd; border-color: rgba(139,92,246,0.25); }
+
+  .strat-head-actions { display: flex; align-items: center; gap: 8px; }
+  .strat-btn-regen {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-card-subtle);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .strat-btn-regen:hover { background: #23232b; border-color: var(--border-strong); }
+  .strat-btn-close {
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-md);
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+  .strat-btn-close:hover { background: var(--bg-card-subtle); color: #fff; }
+
+  .strategy-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .strat-score-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 600px) { .strat-score-strip { grid-template-columns: 1fr; } }
+  .strat-score-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    box-shadow: var(--border-highlight);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .strat-score-card.primary {
+    background: linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(20,20,26,0.8) 100%);
+    border-color: rgba(139,92,246,0.28);
+  }
+  .strat-score-title {
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 4px;
+  }
+  .strat-score-val {
+    font-size: 24px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: #fff;
+    letter-spacing: -0.5px;
+    margin: 4px 0;
+  }
+  .strat-score-val.rec-val { color: var(--accent); }
+  .strat-score-sub { font-size: 11.5px; color: var(--text-secondary); font-weight: 500; }
+
+  .strat-section-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    box-shadow: var(--border-highlight);
+  }
+  .strat-sec-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .strat-sec-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
     gap: 8px;
   }
-  .whatif-label { font-size: 12.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
-  .whatif-change { font-size: 13.5px; font-weight: 600; }
-  .whatif-arrow { color: var(--muted); margin: 0 4px; }
-  .whatif-delta { font-size: 13px; font-weight: 700; }
-  .delta-down { color: var(--success); }
-  .delta-up { color: var(--danger); }
+  .strat-sec-pill {
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    background: var(--accent-dim);
+    color: #c4b5fd;
+  }
 
-  /* --- Milestone timeline: horizontal stepper --- */
-  .stepper { display: flex; align-items: flex-start; justify-content: space-between; padding-top: 6px; }
-  .stepper-node { display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1; position: relative; padding: 0 6px; }
-  .stepper-node::before {
-    content: "";
-    position: absolute;
-    top: 9px; left: -50%; width: 100%; height: 2px;
-    background: var(--border);
-    z-index: 0;
+  .strat-scenarios-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 12px;
   }
-  .stepper-node:first-child::before { display: none; }
-  .stepper-dot {
-    width: 18px; height: 18px; border-radius: 50%;
-    background: var(--accent);
-    border: 3px solid #fff;
-    box-shadow: 0 0 0 2px var(--accent);
-    z-index: 1;
-    margin-bottom: 10px;
+  @media (max-width: 600px) { .strat-scenarios-grid { grid-template-columns: 1fr; } }
+  .strat-scenario-box {
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    border: 1px solid var(--border-subtle);
   }
-  .stepper-phase { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-  .stepper-text { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+  .strat-scenario-box.bull {
+    background: rgba(16, 185, 129, 0.04);
+    border-color: rgba(16, 185, 129, 0.20);
+  }
+  .strat-scenario-box.bear {
+    background: rgba(245, 158, 11, 0.04);
+    border-color: rgba(245, 158, 11, 0.20);
+  }
+  .strat-scenario-label {
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .strat-scenario-box.bull .strat-scenario-label { color: var(--risk-success); }
+  .strat-scenario-box.bear .strat-scenario-label { color: var(--risk-warn); }
+  .strat-scenario-text {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
 
-  /* --- Similar startups --- */
-  .startup-list { display: flex; flex-direction: column; gap: 12px; }
-  .startup-item {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 14px;
-    background: var(--bg);
-    border-radius: 8px;
+  .strat-root-causes-list { display: flex; flex-direction: column; gap: 10px; }
+  .strat-rc-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
   }
-  .startup-name { font-size: 13.5px; font-weight: 700; }
-  .startup-category { font-size: 12px; color: var(--muted); }
+  .strat-rc-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .strat-rc-cat { font-size: 13px; font-weight: 700; color: #fff; }
+  .strat-rc-finding { font-size: 12.5px; color: var(--text-primary); margin-bottom: 4px; }
+  .strat-rc-impact { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+
+  .strat-roadmap-timeline { display: flex; flex-direction: column; gap: 12px; }
+  .strat-phase-block {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+  }
+  .strat-phase-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .strat-phase-name { font-size: 13.5px; font-weight: 700; color: var(--accent); }
+  .strat-phase-goal { font-size: 12px; color: var(--text-muted); }
+  .strat-actions-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .strat-action-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .strat-action-title { font-size: 12.5px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+  .strat-action-detail { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+  .strat-action-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+
+  .strat-moat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  @media (max-width: 600px) { .strat-moat-grid { grid-template-columns: 1fr; } }
+  .strat-moat-box {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+  }
+  .strat-moat-title { font-size: 11px; font-weight: 600; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 2px; }
+  .strat-moat-content { font-size: 12px; color: #fff; font-weight: 500; }
+  .strat-barriers-list { padding-left: 16px; margin-top: 6px; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+
+  .strat-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(139,92,246,0.25);
+    border-radius: 50%;
+    border-top-color: var(--accent);
+    animation: stratSpin 0.7s linear infinite;
+  }
+  .strat-loading-wrap {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .strat-loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(139,92,246,0.2);
+    border-radius: 50%;
+    border-top-color: var(--accent);
+    animation: stratSpin 0.7s linear infinite;
+    margin: 0 auto 16px;
+  }
 
   /* --- Footer --- */
   footer {
@@ -394,19 +852,24 @@
     padding: 0 24px;
   }
   .disclaimer {
-    font-size: 12px;
-    color: var(--muted);
+    font-size: 11.5px;
+    color: var(--text-muted);
     text-align: center;
     line-height: 1.6;
     padding: 18px;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--border-subtle);
   }
+
+  @keyframes stratSpin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 
 <nav>
-  <div class="brand"><span class="dot"></span>smart_failure_detection</div>
+  <a href="overview.html" class="brand">
+    <div class="brand-glyph">✦</div>
+    <span>smart_failure_detection</span>
+  </a>
   <div class="links">
     <a href="overview.html">Overview</a>
     <a href="index.html">Project Input</a>
@@ -416,21 +879,29 @@
 
 <main>
   <div class="page-header">
-    <h1 id="projectTitle">Loading project...</h1>
-    <p class="subtitle" id="projectSubtitle"></p>
+    <div class="page-header-text">
+      <h1 id="projectTitle">Loading project...</h1>
+      <p class="subtitle" id="projectSubtitle"></p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-primary" id="headerStrategyBtn" onclick="openStrategyModal()">
+        <span>✦</span> AI Strategic Advisor
+      </button>
+      <button class="btn-secondary" onclick="window.print()">Export Brief</button>
+    </div>
   </div>
 
-  <!-- Tab switcher -->
+  <!-- Sliding Pill Tab switcher -->
   <div class="tab-bar">
     <button class="tab-btn active" id="tabBtnRisk" data-tab="risk">Risk Assessment</button>
     <button class="tab-btn" id="tabBtnCompetition" data-tab="competition">Competition Assessment</button>
-    <button class="tab-btn" id="tabBtnMilestone2" data-tab="milestone2">SWOT Analysis</button>
+    <button class="tab-btn" id="tabBtnMilestone2" data-tab="milestone2">SWOT &amp; Feasibility</button>
   </div>
 
   <!-- ===================== TAB: RISK ASSESSMENT ===================== -->
   <div class="tab-panel" id="tabPanelRisk">
 
-    <!-- 1. Top ring stat cards: Failure Risk / Success Probability / Business Health / Confidence -->
+    <!-- 1. Top 4 Ring Stat Cards -->
     <div class="grid grid-4">
       <div class="card ring-card">
         <div class="ring-label">Failure Risk</div>
@@ -454,42 +925,55 @@
       </div>
     </div>
 
-    <!-- 2. Risk Breakdown (donut + legend) -->
-    <div class="card" style="margin-bottom:20px;">
-      <h2>Risk Breakdown</h2>
-      <p class="card-sub">Category-wise risk contribution</p>
-      <div class="donut-layout">
-        <div id="donutWrap"></div>
-        <div class="donut-legend" id="donutLegend"></div>
+    <!-- 2. AI Summary Banner -->
+    <div class="ai-summary-card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:280px;">
+          <span class="ai-summary-badge">✦ EXECUTIVE AI SUMMARY</span>
+          <p class="ai-summary-text" id="aiSummaryText">Loading summary...</p>
+        </div>
+        <button class="btn-primary" id="viewExplanationBtn" style="flex-shrink:0;">
+          View Detailed Strategy & Reasoning →
+        </button>
       </div>
     </div>
 
-    <!-- 3. Top Recommendations (checklist) -->
-    <div class="card" style="margin-bottom:20px;">
-      <h2>Top Recommendations</h2>
-      <p class="card-sub">Actions to reduce identified risk</p>
-      <div class="checklist" id="recommendationChecklist"></div>
-    </div>
+    <!-- 3. Analytical 2-Column Grid (5-Category Donut + What-If & Recommendations) -->
+    <div class="grid grid-split">
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <!-- Risk Breakdown (Donut + Legend) -->
+        <div class="card">
+          <h2>Risk Breakdown (5 Categories)</h2>
+          <p class="card-sub">Category-wise risk contribution</p>
+          <div class="donut-layout">
+            <div id="donutWrap"></div>
+            <div class="donut-legend" id="donutLegend"></div>
+          </div>
+        </div>
 
-    <!-- 4. Top Risk Factors & Insights -->
-    <div class="card" style="margin-bottom:20px;">
-      <h2>Top Risk Factors &amp; Insights</h2>
-      <p class="card-sub">Key drivers identified by the model</p>
-      <ul class="insight-list" id="insightList"></ul>
-    </div>
+        <!-- What-if Analysis -->
+        <div class="card whatif-card">
+          <h2>What-if Sensitivity Analysis</h2>
+          <p class="card-sub">Simulated impact of parameter changes</p>
+          <div id="whatifList"></div>
+        </div>
+      </div>
 
-    <!-- 5. AI Summary -->
-    <div class="card ai-summary-card" style="margin-bottom:20px;">
-      <span class="ai-summary-badge">✦ Summary</span>
-      <p class="ai-summary-text" id="aiSummaryText">Loading summary...</p>
-      <button class="ai-link-btn" id="viewExplanationBtn">View Detailed Explanation →</button>
-    </div>
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <!-- Top Recommendations (Checklist) -->
+        <div class="card">
+          <h2>Top Actionable Recommendations</h2>
+          <p class="card-sub">Actions to reduce identified failure risk</p>
+          <div class="checklist" id="recommendationChecklist"></div>
+        </div>
 
-    <!-- 6. What-if Analysis -->
-    <div class="card whatif-card" style="margin-bottom:20px;">
-      <h2>What-if Analysis</h2>
-      <p class="card-sub">Simulated impact of parameter changes</p>
-      <div id="whatifList"></div>
+        <!-- Top Risk Factors & Insights -->
+        <div class="card">
+          <h2>Top Risk Factors &amp; Insights</h2>
+          <p class="card-sub">Key drivers identified by the model</p>
+          <ul class="insight-list" id="insightList"></ul>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -511,61 +995,72 @@
 
   </div>
 
-  <!-- ===================== TAB: MILESTONE 2 — RISK ASSESSMENT & SWOT ANALYSIS ===================== -->
+  <!-- ===================== TAB: MILESTONE 2 — RISK SCORING ENGINE, SWOT & FEASIBILITY ===================== -->
   <div class="tab-panel" id="tabPanelMilestone2" style="display:none;">
 
-    <p class="card-sub" style="margin: -6px 0 18px; font-size: 12.5px;">
-      Based on your actual project details, not placeholder data.
-    </p>
-
-    <!-- 1. Risk Scoring Engine -->
-    <div class="card" style="margin-bottom:20px;">
-      <h2>1. Risk Scoring Engine</h2>
-      <p class="card-sub">Calculated from your project details</p>
-      <div class="m2-viz-row">
-        <div class="m2-gauge-block">
-          <div class="m2-ring-wrap" id="m2OverallRing"></div>
-          <div class="m2-overall-label">Overall Risk Score</div>
-          <span class="ring-tag" id="m2OverallLevelTag"></span>
+    <!-- 1. DEDICATED RISK SCORING ENGINE PANEL (MILESTONE 2 MODEL) -->
+    <div class="scoring-engine-panel">
+      <div class="card-header-row" style="margin-bottom:14px;">
+        <div>
+          <h2>1. Risk Scoring Engine</h2>
+          <p class="card-sub" style="margin-bottom:0;">Calculated across 5 deterministic risk dimensions — Milestone 2 Scoring Model</p>
         </div>
-        <div class="m2-radar-block">
-          <div class="m2-radar-label">Risk Shape Across Categories</div>
+        <span class="ring-tag tag-violet">Deterministic Milestone 2</span>
+      </div>
+
+      <div class="engine-viz-grid">
+        <!-- Overall Failure Risk Score Gauge -->
+        <div class="engine-gauge-block">
+          <div style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted); margin-bottom:4px; text-transform:uppercase;">Overall Failure Risk</div>
+          <div class="ring-wrap" id="m2OverallRing" style="position:relative; width:96px; height:96px; display:flex; align-items:center; justify-content:center;"></div>
+          <span class="ring-tag" id="m2OverallLevelTag" style="margin-top:6px;"></span>
+        </div>
+
+        <!-- 5-Axis Risk Shape Radar Chart -->
+        <div class="engine-radar-block">
+          <div style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted); margin-bottom:6px; text-transform:uppercase;">5-Vector Risk Shape</div>
           <div id="m2RiskRadar"></div>
         </div>
+
+        <!-- Category Score Breakdown Bars -->
+        <div class="score-bars" id="m2RiskBars"></div>
       </div>
-      <div class="score-bars" id="m2RiskBars"></div>
+
+      <div style="font-size:12px; color:var(--text-muted); line-height:1.5;" id="m2RiskEngineSummary">
+        <strong>Contribution Breakdown:</strong> The overall failure risk is determined by multi-factor weights across Financial, Market, Competition, Technical, and Operational dimensions from your project submission.
+      </div>
     </div>
 
-    <!-- 2. SWOT Analysis -->
+    <!-- 2. SWOT ANALYSIS -->
     <div class="card" style="margin-bottom:20px;">
       <h2>2. SWOT Analysis</h2>
-      <p class="card-sub">Generated from the risk profile above — varies by submission</p>
+      <p class="card-sub">Derived directly from the 5-category risk signals</p>
       <div class="swot-quadrants" id="m2SwotGrid"></div>
     </div>
 
-    <!-- 3. Project Feasibility Assessment -->
+    <!-- 3. PROJECT FEASIBILITY ASSESSMENT -->
     <div class="card">
       <h2>3. Project Feasibility Assessment</h2>
-      <p class="card-sub">Based on the risk scores above</p>
-      <div class="m2-viz-row">
-        <div class="m2-gauge-block">
-          <div class="m2-ring-wrap" id="m2FeasRing"></div>
-          <div class="m2-overall-label">Overall Feasibility Score</div>
-          <span class="ring-tag" id="m2FeasLevelTag"></span>
+      <p class="card-sub">Operational &amp; technical feasibility evaluation</p>
+      <div class="engine-viz-grid" style="grid-template-columns: 200px 220px 1fr; margin-bottom:14px; padding-bottom:16px;">
+        <div class="engine-gauge-block">
+          <div style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted); margin-bottom:4px; text-transform:uppercase;">Overall Feasibility</div>
+          <div class="ring-wrap" id="m2FeasRing" style="position:relative; width:96px; height:96px; display:flex; align-items:center; justify-content:center;"></div>
+          <span class="ring-tag" id="m2FeasLevelTag" style="margin-top:6px;"></span>
         </div>
-        <div class="m2-radar-block">
-          <div class="m2-radar-label">Feasibility Shape Across Categories</div>
+        <div class="engine-radar-block">
+          <div style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted); margin-bottom:6px; text-transform:uppercase;">Feasibility Shape</div>
           <div id="m2FeasRadar"></div>
         </div>
+        <div class="score-bars" id="m2FeasBars"></div>
       </div>
-      <div class="score-bars" id="m2FeasBars"></div>
 
       <div class="m2-factor-grid">
-        <div>
+        <div style="background:var(--bg-surface); padding:14px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
           <h3 class="m2-factor-heading positive">Positive Factors</h3>
           <ul class="m2-factor-list" id="m2PositiveFactors"></ul>
         </div>
-        <div>
+        <div style="background:var(--bg-surface); padding:14px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
           <h3 class="m2-factor-heading attention">Areas Requiring Attention</h3>
           <ul class="m2-factor-list" id="m2AttentionAreas"></ul>
         </div>
@@ -577,29 +1072,62 @@
   </div>
 </main>
 
+<!-- ===================== MILESTONE 3: AI STRATEGIC ADVISOR SLIDE-OVER DRAWER ===================== -->
+<div class="strategy-modal-overlay" id="strategyModalOverlay" onclick="handleDrawerOverlayClick(event)">
+  <div class="strategy-modal-box" role="dialog" aria-modal="true" aria-labelledby="stratModalTitle">
+    <div class="strategy-modal-header">
+      <div class="strat-head-left">
+        <div class="strat-icon-badge">✦</div>
+        <div>
+          <div class="strat-title" id="stratModalTitle">AI Strategic Advisor &amp; Mitigation Roadmap</div>
+          <div class="strat-meta-badges">
+            <span class="strat-badge orchestrator" id="stratOrchestratorBadge">LangGraph StateGraph</span>
+            <span class="strat-badge provider" id="stratProviderBadge">Loading provider...</span>
+            <span class="strat-badge" id="stratTimeBadge"></span>
+          </div>
+        </div>
+      </div>
+      <div class="strat-head-actions">
+        <button class="strat-btn-regen" id="stratRegenBtn" title="Re-run LangGraph strategy generation">
+          <span id="stratRegenSpinner" style="display:none;" class="strat-spinner"></span>
+          <span id="stratRegenLabel">↻ Regenerate</span>
+        </button>
+        <button class="strat-btn-close" id="stratCloseBtn" aria-label="Close drawer">✕</button>
+      </div>
+    </div>
+
+    <div class="strategy-modal-body" id="stratModalBody">
+      <div class="strat-loading-wrap" id="stratLoadingWrap">
+        <div class="strat-loading-spinner"></div>
+        <p>Orchestrating multi-node LangGraph strategic reasoning...</p>
+      </div>
+      <div id="stratContentWrap" style="display:none; flex-direction:column; gap:20px;">
+        <!-- Dynamically injected via JavaScript -->
+      </div>
+    </div>
+  </div>
+</div>
+
 <footer>
   <p class="disclaimer">
-    This analysis is generated by an AI model for informational purposes only and does not constitute
-    financial, legal, or investment advice. Predictions are based on the information provided and general
-    market patterns; actual outcomes may vary. Please consult a qualified professional before making
-    business decisions.
+    This analysis is generated for informational and risk evaluation purposes only. Predictive scores reflect multi-vector parameter modeling and historical patterns; actual venture outcomes may vary. Consult qualified specialists before making critical capital allocations.
   </p>
 </footer>
 
 <script>
 /* ============================================================================
-   LIVE DATA FETCH
-   Reads project_id from the URL (?project_id=123), fetches real analysis
-   from the backend, and renders it. No hardcoded business logic here —
-   every value below comes straight from the API response.
+   LIVE DATA FETCH & BINDING
 ============================================================================ */
 const API_BASE = "";
 
 function showError(message) {
   document.getElementById("projectTitle").textContent = "Unable to load analysis";
   document.getElementById("projectSubtitle").innerHTML =
-    `${message} — <a href="index.html" style="color:var(--navy); font-weight:600;">go back to Project Input</a>`;
+    `${message} — <a href="index.html" style="color:var(--accent); font-weight:600;">return to Project Input</a>`;
 }
+
+let currentProjectId = null;
+let currentStrategyData = null;
 
 async function loadAnalysis() {
   const params = new URLSearchParams(window.location.search);
@@ -609,6 +1137,7 @@ async function loadAnalysis() {
     showError("No project_id was provided in the URL");
     return;
   }
+  currentProjectId = projectId;
 
   try {
     const res = await fetch(`${API_BASE}/api/analysis/${projectId}`);
@@ -626,9 +1155,9 @@ async function loadAnalysis() {
 /* ===================== Render helpers ===================== */
 
 function riskTag(pct) {
-  if (pct >= 60) return { cls: "tag-danger", label: "High" };
-  if (pct >= 35) return { cls: "tag-warn", label: "Moderate" };
-  return { cls: "tag-success", label: "Low" };
+  if (pct >= 60) return { cls: "tag-danger", label: "Critical Risk" };
+  if (pct >= 35) return { cls: "tag-warn", label: "Moderate Risk" };
+  return { cls: "tag-success", label: "Low Risk" };
 }
 
 function renderHeader(d) {
@@ -637,13 +1166,13 @@ function renderHeader(d) {
     `${d.project.industry} · Analyzed on ${d.project.analysisDate}`;
 }
 
-function ringSvg(pct, color, size = 84, stroke = 8) {
+function ringSvg(pct, color, size = 84, stroke = 7) {
   const r = (size - stroke) / 2;
   const c = Math.PI * 2 * r;
   const offset = c * (1 - Math.min(Math.max(pct, 0), 100) / 100);
   return `
     <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#e9e7f3" stroke-width="${stroke}"/>
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#1c1c22" stroke-width="${stroke}"/>
       <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
               stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${offset}"
               transform="rotate(-90 ${size/2} ${size/2})"/>
@@ -653,7 +1182,7 @@ function ringSvg(pct, color, size = 84, stroke = 8) {
 
 function setRing(wrapId, tagId, pct, valueText, color, tagCls, tagText) {
   const wrap = document.getElementById(wrapId);
-  wrap.innerHTML = ringSvg(pct, color) + `<span class="ring-value">${valueText}</span>`;
+  wrap.innerHTML = ringSvg(pct, color) + `<span class="ring-value mono-val">${valueText}</span>`;
   const tagEl = document.getElementById(tagId);
   tagEl.textContent = tagText;
   tagEl.className = `ring-tag ${tagCls}`;
@@ -662,29 +1191,29 @@ function setRing(wrapId, tagId, pct, valueText, color, tagCls, tagText) {
 function renderTopStats(d) {
   const f = riskTag(d.overview.failureRiskPct);
   setRing("ringFailureRisk", "ringFailureRiskTag", d.overview.failureRiskPct,
-    `${d.overview.failureRiskPct}%`, "#dc2626", f.cls, f.label + " Risk");
+    `${d.overview.failureRiskPct}%`, "#f43f5e", f.cls, f.label);
 
   const successCls = d.overview.successProbabilityPct >= 50 ? "tag-success" : "tag-warn";
   setRing("ringSuccessProb", "ringSuccessProbTag", d.overview.successProbabilityPct,
-    `${d.overview.successProbabilityPct}%`, "#16a34a",
-    successCls, d.overview.successProbabilityPct >= 50 ? "Favorable" : "Low");
+    `${d.overview.successProbabilityPct}%`, "#10b981",
+    successCls, d.overview.successProbabilityPct >= 50 ? "Favorable" : "Low Viability");
 
   const { score, max, status } = d.healthScore;
   const healthCls = score >= 70 ? "tag-success" : score >= 40 ? "tag-warn" : "tag-danger";
   setRing("ringHealth", "ringHealthTag", (score / max) * 100,
-    `${score}/${max}`, "#7c3aed", healthCls, status);
+    `${score}`, "#8b5cf6", healthCls, status);
 
   const confCls = d.model.confidencePct >= 80 ? "tag-success" : "tag-warn";
   setRing("ringConfidence", "ringConfidenceTag", d.model.confidencePct,
-    `${d.model.confidencePct}%`, "#4f46e5", confCls, d.model.confidenceLabel);
+    `${d.model.confidencePct}%`, "#06b6d4", confCls, d.model.confidenceLabel);
 }
 
-const DONUT_COLORS = ["#dc2626", "#f59e0b", "#eab308", "#16a34a", "#4f46e5"];
+const DONUT_COLORS = ["#f43f5e", "#f59e0b", "#eab308", "#8b5cf6", "#10b981"];
 
 function renderRiskDonut(d) {
   const items = d.riskBreakdown;
   const total = items.reduce((sum, r) => sum + r.pct, 0) || 1;
-  const size = 160, r = 60, cx = size / 2, cy = size / 2, stroke = 26;
+  const size = 130, r = 48, cx = size / 2, cy = size / 2, stroke = 16;
   const circumference = 2 * Math.PI * r;
 
   let cumulative = 0;
@@ -709,9 +1238,11 @@ function renderRiskDonut(d) {
     const row = document.createElement("div");
     row.className = "legend-row";
     row.innerHTML = `
-      <span class="legend-dot" style="background:${DONUT_COLORS[i % DONUT_COLORS.length]}"></span>
-      <span class="legend-name">${item.name.replace(" Risk", "")}</span>
-      <span class="legend-pct">${item.pct}%</span>
+      <span class="legend-label-wrap">
+        <span class="legend-dot" style="background:${DONUT_COLORS[i % DONUT_COLORS.length]}"></span>
+        <span class="legend-name">${item.name.replace(" Risk", "")}</span>
+      </span>
+      <span class="legend-pct mono-val">${item.pct}%</span>
     `;
     legend.appendChild(row);
   });
@@ -738,10 +1269,11 @@ function renderRecommendationChecklist(d) {
     const item = document.createElement("div");
     item.className = "checklist-item";
     item.innerHTML = `
-      <span class="check-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-      </span>
-      <span>${m.title}</span>
+      <span class="check-icon">✓</span>
+      <div>
+        <div style="font-weight:600; color:#fff; margin-bottom:2px;">${m.title}</div>
+        <div style="font-size:12px; color:var(--text-muted);">${m.desc || ""}</div>
+      </div>
     `;
     container.appendChild(item);
   });
@@ -761,7 +1293,7 @@ function renderWhatif(d) {
       </div>
       <div style="text-align:right;">
         <div class="whatif-label">${w.metric}</div>
-        <div class="whatif-change">${w.fromPct}% <span class="whatif-arrow">→</span> ${w.toPct}%
+        <div class="whatif-change mono-val">${w.fromPct}% <span class="whatif-arrow">→</span> ${w.toPct}%
           <span class="whatif-delta ${deltaCls}">(${w.delta > 0 ? "+" : ""}${w.delta}%)</span>
         </div>
       </div>
@@ -788,18 +1320,13 @@ function renderCompetitors(d) {
   const container = document.getElementById("competitorList");
   container.innerHTML = "";
 
-  // The current backend does not yet provide live competitor intelligence.
-  // Show a clear message instead of throwing an undefined.forEach() error.
   const competitors = Array.isArray(d.competitors) ? d.competitors : [];
-
   if (competitors.length === 0) {
     container.innerHTML = `
       <div class="competitor-item">
         <div>
           <div class="competitor-name">Competition data not available yet</div>
-          <div class="competitor-position">
-            Competitor intelligence will be added when the market research layer is connected.
-          </div>
+          <div class="competitor-position">Competitor intelligence will be populated upon market data sync.</div>
         </div>
       </div>
     `;
@@ -815,28 +1342,22 @@ function renderCompetitors(d) {
         <div class="competitor-name">${c.name}</div>
         <div class="competitor-position">${c.marketPosition}</div>
       </div>
-      <span class="competitor-risk-tag ${riskCls[c.competitiveRisk] || "tag-warn"}">${c.competitiveRisk} Risk</span>
+      <span class="ring-tag ${riskCls[c.competitiveRisk] || "tag-warn"}">${c.competitiveRisk} Risk</span>
     `;
     container.appendChild(item);
   });
 }
 
 function scoreColor(score) {
-  return score >= 60 ? "#dc2626" : score >= 35 ? "#f59e0b" : "#16a34a"; // risk-style: higher = worse
+  return score >= 60 ? "#f43f5e" : score >= 35 ? "#f59e0b" : "#10b981";
 }
 function feasColor(score) {
-  return score >= 65 ? "#16a34a" : score >= 40 ? "#f59e0b" : "#dc2626"; // feasibility-style: higher = better
-}
-function levelTagClass(level) {
-  return level === "High" ? "tag-danger" : level === "Moderate" ? "tag-warn" : "tag-success";
-}
-function feasLevelTagClass(level) {
-  return level === "High" ? "tag-success" : level === "Moderate" ? "tag-warn" : "tag-danger";
+  return score >= 65 ? "#10b981" : score >= 40 ? "#f59e0b" : "#f43f5e";
 }
 
-function radarChartSvg(categories, color, size = 190) {
-  const center = size / 2, maxR = size * 0.34;
-  const n = categories.length;
+function radarChartSvg(categories, color, size = 180) {
+  const center = size / 2, maxR = size * 0.36;
+  const n = categories.length || 5;
   const angleStep = (Math.PI * 2) / n;
   const pointAt = (pct, i) => {
     const r = (Math.max(0, Math.min(100, pct)) / 100) * maxR;
@@ -845,32 +1366,32 @@ function radarChartSvg(categories, color, size = 190) {
   };
 
   let gridRings = "";
-  [0.25, 0.5, 0.75, 1].forEach(f => {
+  [0.33, 0.66, 1].forEach(f => {
     const pts = Array.from({ length: n }, (_, i) => {
       const angle = -Math.PI / 2 + i * angleStep;
       return `${center + maxR * f * Math.cos(angle)},${center + maxR * f * Math.sin(angle)}`;
     }).join(" ");
-    gridRings += `<polygon points="${pts}" fill="none" stroke="#e9e7f3" stroke-width="1"/>`;
+    gridRings += `<polygon points="${pts}" fill="none" stroke="#22222a" stroke-width="1"/>`;
   });
 
   let axes = "", labels = "";
   categories.forEach((c, i) => {
     const [x, y] = pointAt(100, i);
-    axes += `<line x1="${center}" y1="${center}" x2="${x}" y2="${y}" stroke="#e9e7f3" stroke-width="1"/>`;
-    const [lx, ly] = pointAt(120, i);
+    axes += `<line x1="${center}" y1="${center}" x2="${x}" y2="${y}" stroke="#2a2a34" stroke-width="1"/>`;
+    const [lx, ly] = pointAt(124, i);
     const shortName = c.name.replace(" Risk", "").replace(" Feasibility", "");
-    labels += `<text x="${lx}" y="${ly}" font-size="10" fill="#6b7280" text-anchor="middle" dominant-baseline="middle">${shortName}</text>`;
+    labels += `<text x="${lx}" y="${ly}" font-size="9" fill="#a1a1aa" text-anchor="middle" dominant-baseline="middle" font-family="'JetBrains Mono', monospace">${shortName}</text>`;
   });
 
   const dataPts = categories.map((c, i) => pointAt(c.score, i).join(",")).join(" ");
-  const pad = 30;
+  const pad = 24;
 
   return `
     <svg width="${size + pad * 2}" height="${size + pad}" viewBox="0 0 ${size + pad * 2} ${size + pad}">
       <g transform="translate(${pad},${pad / 2})">
         ${gridRings}
         ${axes}
-        <polygon points="${dataPts}" fill="${color}" fill-opacity="0.16" stroke="${color}" stroke-width="2"/>
+        <polygon points="${dataPts}" fill="${color}" fill-opacity="0.18" stroke="${color}" stroke-width="1.8"/>
         ${labels}
       </g>
     </svg>
@@ -879,7 +1400,7 @@ function radarChartSvg(categories, color, size = 190) {
 
 function setM2Ring(wrapId, pct, valueText, color) {
   const wrap = document.getElementById(wrapId);
-  wrap.innerHTML = ringSvg(pct, color, 110, 10) + `<span class="ring-value">${valueText}</span>`;
+  wrap.innerHTML = ringSvg(pct, color, 96, 8) + `<span class="ring-value mono-val" style="position:absolute; font-size:22px; font-weight:700; color:#fff;">${valueText}</span>`;
 }
 
 function renderScoreBars(containerId, categories, colorFn) {
@@ -891,7 +1412,7 @@ function renderScoreBars(containerId, categories, colorFn) {
     row.innerHTML = `
       <span class="score-bar-name">${cat.name}</span>
       <span class="score-bar-track"><span class="score-bar-fill" style="width:${cat.score}%; background:${colorFn(cat.score)}"></span></span>
-      <span class="score-bar-value">${cat.score}</span>
+      <span class="score-bar-value mono-val" style="color:${colorFn(cat.score)}">${cat.score}</span>
     `;
     container.appendChild(row);
   });
@@ -899,21 +1420,17 @@ function renderScoreBars(containerId, categories, colorFn) {
 
 function renderMilestone2(d) {
   const m2 = d.milestone2;
-  if (!m2) {
-    return; // guards against an older backend response without this key
-  }
+  if (!m2) return;
 
-  // 1. Risk Scoring Engine
-  // Backend fields: overallScore, riskLevel, riskBreakdown, confidenceScore
+  // 1. Dedicated Risk Scoring Engine Panel (Milestone 2)
   const overallRiskColor = scoreColor(m2.riskScoring.overallScore);
-  setM2Ring("m2OverallRing", m2.riskScoring.overallScore, m2.riskScoring.overallScore, overallRiskColor);
+  setM2Ring("m2OverallRing", m2.riskScoring.overallScore, `${m2.riskScoring.overallScore}%`, overallRiskColor);
   document.getElementById("m2RiskRadar").innerHTML =
     radarChartSvg(m2.riskScoring.riskBreakdown || [], overallRiskColor);
 
   const riskLevelTag = document.getElementById("m2OverallLevelTag");
   const riskLevel = m2.riskScoring.riskLevel || "Moderate Risk";
-  riskLevelTag.textContent =
-    `${riskLevel} · ${m2.riskScoring.confidenceScore}% confidence`;
+  riskLevelTag.textContent = `${riskLevel} · ${m2.riskScoring.confidenceScore}% confidence`;
 
   const riskTagClass =
     riskLevel.includes("Critical") || riskLevel.includes("High")
@@ -927,31 +1444,28 @@ function renderMilestone2(d) {
 
   // 2. SWOT Analysis
   const groups = [
-    { key: "strengths", label: "Strengths", color: "var(--success)" },
-    { key: "weaknesses", label: "Weaknesses", color: "var(--danger)" },
-    { key: "opportunities", label: "Opportunities", color: "#4f46e5" },
-    { key: "threats", label: "Threats", color: "var(--warn)" },
+    { key: "strengths", label: "STRENGTHS", color: "var(--risk-success)" },
+    { key: "weaknesses", label: "WEAKNESSES", color: "var(--risk-danger)" },
+    { key: "opportunities", label: "OPPORTUNITIES", color: "var(--accent)" },
+    { key: "threats", label: "THREATS", color: "var(--risk-warn)" },
   ];
 
   const grid = document.getElementById("m2SwotGrid");
   grid.innerHTML = "";
-
   groups.forEach(g => {
     const q = document.createElement("div");
     q.className = "swot-q";
     const values = Array.isArray(m2.swot?.[g.key]) ? m2.swot[g.key] : [];
     const items = values.map(t => `<li>${t}</li>`).join("");
     q.innerHTML =
-      `<h3><span class="swot-dot" style="background:${g.color}"></span>${g.label}</h3>` +
-      `<ul>${items || "<li>No information available yet.</li>"}</ul>`;
+      `<h3><span class="swot-dot" style="background:${g.color}"></span><span style="color:${g.color}">${g.label}</span></h3>` +
+      `<ul>${items || "<li>No data available yet.</li>"}</ul>`;
     grid.appendChild(q);
   });
 
   // 3. Project Feasibility Assessment
-  // Backend fields: overallScore, level, breakdown, positiveFactors,
-  // attentionAreas, summary
   const overallFeasColor = feasColor(m2.feasibility.overallScore);
-  setM2Ring("m2FeasRing", m2.feasibility.overallScore, m2.feasibility.overallScore, overallFeasColor);
+  setM2Ring("m2FeasRing", m2.feasibility.overallScore, `${m2.feasibility.overallScore}`, overallFeasColor);
   document.getElementById("m2FeasRadar").innerHTML =
     radarChartSvg(m2.feasibility.breakdown || [], overallFeasColor);
 
@@ -966,11 +1480,7 @@ function renderMilestone2(d) {
         : "tag-danger"
   }`;
 
-  renderScoreBars(
-    "m2FeasBars",
-    m2.feasibility.breakdown || [],
-    feasColor
-  );
+  renderScoreBars("m2FeasBars", m2.feasibility.breakdown || [], feasColor);
 
   document.getElementById("m2PositiveFactors").innerHTML =
     (m2.feasibility.positiveFactors || [])
@@ -982,8 +1492,8 @@ function renderMilestone2(d) {
       .map(f => `<li>${f}</li>`)
       .join("") || "<li>No specific attention areas identified.</li>";
 
-  document.getElementById("m2Conclusion").textContent =
-    m2.feasibility.summary || "";
+  document.getElementById("m2Conclusion").innerHTML =
+    `<strong>Feasibility Conclusion:</strong> ${m2.feasibility.summary || ""}`;
 }
 
 function renderAll(data) {
@@ -999,10 +1509,229 @@ function renderAll(data) {
   renderMilestone2(data);
 }
 
-document.getElementById("viewExplanationBtn").addEventListener("click", () => {
-  // Placeholder — wire to a modal or dedicated explanation view once the
-  // LLM Layer's "Business Strategy Advisor" output is available via API.
-  alert("Detailed explanation view will be wired once the LLM explanation endpoint is available.");
+/* ============================================================================
+   MILESTONE 3: AI STRATEGIC ADVISOR SLIDE-OVER DRAWER LOGIC
+============================================================================ */
+
+function openStrategyModal() {
+  const overlay = document.getElementById("strategyModalOverlay");
+  overlay.classList.add("active");
+  document.body.style.overflow = "hidden";
+
+  if (!currentStrategyData) {
+    fetchStrategy(false);
+  }
+}
+
+function closeStrategyModal() {
+  const overlay = document.getElementById("strategyModalOverlay");
+  overlay.classList.remove("active");
+  document.body.style.overflow = "";
+}
+
+function handleDrawerOverlayClick(e) {
+  if (e.target === document.getElementById("strategyModalOverlay")) {
+    closeStrategyModal();
+  }
+}
+
+async function fetchStrategy(forceRefresh = false) {
+  const loadingWrap = document.getElementById("stratLoadingWrap");
+  const contentWrap = document.getElementById("stratContentWrap");
+  const regenBtn = document.getElementById("stratRegenBtn");
+  const regenSpinner = document.getElementById("stratRegenSpinner");
+  const regenLabel = document.getElementById("stratRegenLabel");
+
+  if (!currentProjectId) return;
+
+  if (forceRefresh) {
+    regenBtn.disabled = true;
+    regenSpinner.style.display = "inline-block";
+    regenLabel.textContent = "Synthesizing...";
+  } else {
+    loadingWrap.style.display = "block";
+    contentWrap.style.display = "none";
+  }
+
+  try {
+    const url = forceRefresh
+      ? `${API_BASE}/api/analysis/${currentProjectId}/strategy/regenerate`
+      : `${API_BASE}/api/analysis/${currentProjectId}/strategy`;
+    
+    const method = forceRefresh ? "POST" : "GET";
+    const res = await fetch(url, { method });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Server returned status ${res.status}`);
+    }
+    const data = await res.json();
+    currentStrategyData = data;
+    renderStrategyModal(data);
+    loadingWrap.style.display = "none";
+    contentWrap.style.display = "flex";
+  } catch (err) {
+    loadingWrap.innerHTML = `
+      <div style="color:var(--risk-danger); margin-bottom:8px; font-weight:700;">Unable to Generate Strategic Advisory</div>
+      <div style="font-size:12.5px; color:var(--text-muted); line-height:1.5;">${err.message}</div>
+      <button class="btn-primary" style="margin-top:16px;" onclick="fetchStrategy(true)">↻ Retry Strategy Generation</button>
+    `;
+    loadingWrap.style.display = "block";
+    contentWrap.style.display = "none";
+  } finally {
+    regenBtn.disabled = false;
+    regenSpinner.style.display = "none";
+    regenLabel.textContent = "↻ Regenerate";
+  }
+}
+
+function renderStrategyModal(d) {
+  const pInfo = d.provider_info || {};
+  document.getElementById("stratOrchestratorBadge").textContent = pInfo.orchestrator || "LangGraph StateGraph";
+  const pName = (pInfo.name || "offline").toUpperCase();
+  document.getElementById("stratProviderBadge").textContent =
+    pName === "GEMINI" ? "Google Gemini" : pName === "OPENAI" ? "OpenAI" : "Offline Heuristic Engine";
+  
+  if (d.generated_at) {
+    const dt = new Date(d.generated_at);
+    document.getElementById("stratTimeBadge").textContent = `Updated: ${dt.toLocaleTimeString()}`;
+  }
+
+  const scores = d.scores || {};
+  const synth = d.executive_synthesis || {};
+  const rootCauses = d.root_causes || [];
+  const roadmap = d.mitigation_roadmap || [];
+  const positioning = d.positioning_analysis || {};
+
+  const contentWrap = document.getElementById("stratContentWrap");
+  contentWrap.innerHTML = `
+    <!-- 1. Executive Score Strip -->
+    <div class="strat-score-strip">
+      <div class="strat-score-card primary">
+        <div class="strat-score-title">Strategic Recommendation Score</div>
+        <div class="strat-score-val rec-val">${scores.strategic_recommendation_score ?? 75}<span style="font-size:13px; font-weight:600; color:var(--text-muted)">/100</span></div>
+        <span class="ring-tag tag-violet">${synth.recommendation_label || "Execution Ready"}</span>
+      </div>
+      <div class="strat-score-card">
+        <div class="strat-score-title">Baseline Failure Risk (M2)</div>
+        <div class="strat-score-val" style="color:${scoreColor(scores.baseline_failure_risk_pct ?? 50)}">${scores.baseline_failure_risk_pct ?? 50}%</div>
+        <span class="ring-tag tag-danger">${scores.baseline_risk_level || "Risk Level"} · Baseline</span>
+      </div>
+      <div class="strat-score-card">
+        <div class="strat-score-title">Feasibility Index</div>
+        <div class="strat-score-val" style="color:${feasColor(scores.feasibility_overall_score ?? 60)}">${scores.feasibility_overall_score ?? 60}<span style="font-size:13px; font-weight:600; color:var(--text-muted)">/100</span></div>
+        <span class="ring-tag tag-cyan">Operational Alignment</span>
+      </div>
+    </div>
+
+    <!-- 2. Executive Strategic Verdict & Comparative Scenarios -->
+    <div class="strat-section-card">
+      <div class="strat-sec-header">
+        <div class="strat-sec-title"><span>🏛️</span> Executive Strategic Verdict</div>
+        <span class="strat-sec-pill">LangGraph Synthesis</span>
+      </div>
+      <p style="font-size:13px; line-height:1.6; color:var(--text-primary);">${synth.executive_verdict || "Strategic synthesis generated across analytical nodes."}</p>
+      
+      <div class="strat-scenarios-grid">
+        <div class="strat-scenario-box bull">
+          <div class="strat-scenario-label">▲ Bull Case Scenario (Upside)</div>
+          <div class="strat-scenario-text">${synth.bull_case_scenario || "Rapid early adoption and strong willingness to pay."}</div>
+        </div>
+        <div class="strat-scenario-box bear">
+          <div class="strat-scenario-label">▼ Bear Case Scenario (Downside Risk)</div>
+          <div class="strat-scenario-text">${synth.bear_case_scenario || "Customer acquisition friction and burn escalation."}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Decomposed Root Causes -->
+    <div class="strat-section-card">
+      <div class="strat-sec-header">
+        <div class="strat-sec-title"><span>🔍</span> Decomposed Root Causes &amp; Vulnerabilities</div>
+        <span class="strat-sec-pill">${rootCauses.length} Priority Drivers</span>
+      </div>
+      <div class="strat-root-causes-list">
+        ${rootCauses.map(rc => `
+          <div class="strat-rc-card">
+            <div class="strat-rc-head">
+              <span class="strat-rc-cat">${rc.category}</span>
+              <span class="ring-tag ${rc.severity === "High" ? "tag-danger" : rc.severity === "Medium" ? "tag-warn" : "tag-success"}">${rc.severity} Severity</span>
+            </div>
+            <div class="strat-rc-finding">${rc.finding}</div>
+            <div class="strat-rc-impact"><strong>Potential Impact:</strong> ${rc.impact}</div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+
+    <!-- 4. 3-Phase Tactical Mitigation Roadmap -->
+    <div class="strat-section-card">
+      <div class="strat-sec-header">
+        <div class="strat-sec-title"><span>🗓️</span> Phased Mitigation Action Plan</div>
+        <span class="strat-sec-pill">0–90+ Day Execution Roadmap</span>
+      </div>
+      <div class="strat-roadmap-timeline">
+        ${roadmap.map(phase => `
+          <div class="strat-phase-block">
+            <div class="strat-phase-head">
+              <div class="strat-phase-name">${phase.phase}</div>
+              <div class="strat-phase-goal">${phase.focus}</div>
+            </div>
+            <p style="font-size:12px; color:var(--text-secondary); margin-bottom:10px;"><strong>Milestone Target:</strong> ${phase.milestone_goal}</p>
+            <div class="strat-actions-list">
+              ${(phase.actions || []).map(act => `
+                <div class="strat-action-item">
+                  <div>
+                    <div class="strat-action-title">${act.title}</div>
+                    <div class="strat-action-detail">${act.detail}</div>
+                  </div>
+                  <div class="strat-action-meta">
+                    <span class="ring-tag ${act.priority === "Critical" ? "tag-danger" : act.priority === "High" ? "tag-warn" : "tag-violet"}">${act.priority}</span>
+                    <span style="font-size:10.5px; color:var(--text-muted); font-family:var(--font-mono);">${act.owner || "Founder"}</span>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+
+    <!-- 5. Moat & Defensibility Playbook -->
+    <div class="strat-section-card">
+      <div class="strat-sec-header">
+        <div class="strat-sec-title"><span>🛡️</span> Competitive Moat &amp; Defensibility Playbook</div>
+        <span class="strat-sec-pill">Defensibility Layer</span>
+      </div>
+      <div class="strat-moat-grid">
+        <div class="strat-moat-box">
+          <div class="strat-moat-title">CORE VALUE PROPOSITION</div>
+          <div class="strat-moat-content">${positioning.core_value_proposition || "Targeted domain solution."}</div>
+        </div>
+        <div class="strat-moat-box">
+          <div class="strat-moat-title">DIFFERENTIATION ANGLE</div>
+          <div class="strat-moat-content">${positioning.primary_differentiation_angle || "Proprietary workflow telemetry."}</div>
+        </div>
+        <div class="strat-moat-box" style="grid-column: 1 / -1;">
+          <div class="strat-moat-title">DEFENSIBILITY STRATEGY</div>
+          <div class="strat-moat-content">${positioning.defensibility_strategy || "Workflow integration and switching barriers."}</div>
+        </div>
+      </div>
+      <div class="strat-moat-title" style="margin-top:10px;">RECOMMENDED ENTRY BARRIERS TO CONSTRUCT:</div>
+      <ul class="strat-barriers-list">
+        ${(positioning.barrier_to_entry_recommendations || []).map(b => `<li>${b}</li>`).join("")}
+      </ul>
+    </div>
+  `;
+}
+
+// Drawer Event Listeners
+document.getElementById("viewExplanationBtn").addEventListener("click", openStrategyModal);
+document.getElementById("stratCloseBtn").addEventListener("click", closeStrategyModal);
+document.getElementById("stratRegenBtn").addEventListener("click", () => fetchStrategy(true));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && document.getElementById("strategyModalOverlay").classList.contains("active")) {
+    closeStrategyModal();
+  }
 });
 
 /* ===================== Tab switching ===================== */

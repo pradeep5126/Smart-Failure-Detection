@@ -6,79 +6,130 @@
 <title>smart_failure_detection — Overview</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --ink: #1e1b2e;
-    --ink-soft: #4a4560;
-    --accent: #7c3aed;
-    --accent-2: #4f46e5;
-    --accent-dark: #6d28d9;
-    --bg: #f6f5fb;
-    --card: #ffffff;
-    --text: #1e1b2e;
-    --muted: #6b7280;
-    --border: #e9e7f3;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
+    --bg-base: #09090b;
+    --bg-surface: #101014;
+    --bg-card: #141418;
+    --bg-card-subtle: #1a1a20;
+    --bg-glass: rgba(12, 12, 16, 0.88);
+
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --border-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+    --accent: #8b5cf6;
+    --accent-hover: #9d74f7;
+    --accent-glow: rgba(139, 92, 246, 0.15);
+    --accent-dim: rgba(139, 92, 246, 0.10);
+
+    --cyan: #06b6d4;
+    --cyan-dim: rgba(6, 182, 212, 0.10);
+
+    --risk-danger: #f43f5e;
+    --risk-danger-bg: rgba(244, 63, 94, 0.08);
+    --risk-danger-border: rgba(244, 63, 94, 0.20);
+
+    --risk-warn: #f59e0b;
+    --risk-warn-bg: rgba(245, 158, 11, 0.08);
+    --risk-warn-border: rgba(245, 158, 11, 0.20);
+
+    --risk-success: #10b981;
+    --risk-success-bg: rgba(16, 185, 129, 0.08);
+    --risk-success-border: rgba(16, 185, 129, 0.20);
+
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+
+    --font-ui: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 18px;
+    --radius-pill: 9999px;
   }
 
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+    background-image: 
+      radial-gradient(ellipse 70% 40% at 50% -10%, rgba(139, 92, 246, 0.08), transparent 70%);
+  }
+
+  /* --- Navigation --- */
   nav {
-    background: #ffffff;
-    color: var(--ink);
+    background: var(--bg-glass);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border-subtle);
+    height: 58px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 0 32px;
-    height: 64px;
-    border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 100;
   }
   nav .brand {
     display: flex;
     align-items: center;
-    gap: 9px;
-    font-weight: 700;
-    font-size: 16px;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 14px;
     letter-spacing: -0.2px;
-    margin-right: 44px;
-    color: var(--ink);
+    color: var(--text-primary);
+    text-decoration: none;
   }
-  nav .brand .dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 0 4px rgba(124,58,237,0.15);
+  .brand-glyph {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent), #6366f1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 11px;
+  }
+  nav .links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-surface);
+    padding: 3px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border-subtle);
   }
   nav .links a {
-    color: var(--muted);
+    color: var(--text-secondary);
     text-decoration: none;
-    margin-right: 24px;
-    font-size: 14px;
+    font-size: 12.5px;
     font-weight: 500;
-    padding: 22px 2px;
-    border-bottom: 2px solid transparent;
-    transition: color 0.15s ease, border-color 0.15s ease;
+    padding: 5px 14px;
+    border-radius: var(--radius-pill);
+    transition: color 0.15s ease, background 0.15s ease;
   }
   nav .links a.active {
-    color: var(--accent);
-    border-bottom: 2px solid var(--accent);
-    font-weight: 600;
+    background: var(--bg-card-subtle);
+    color: var(--text-primary);
+    box-shadow: var(--border-highlight);
   }
-  nav .links a:hover { color: var(--ink); }
+  nav .links a:hover:not(.active) { color: var(--text-primary); }
 
+  /* --- Hero Section --- */
   .hero {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 120px 24px 100px;
+    max-width: 860px;
+    margin: 48px auto 0;
+    padding: 24px;
     text-align: center;
   }
   .hero .eyebrow {
@@ -86,67 +137,178 @@
     align-items: center;
     gap: 6px;
     font-size: 12px;
-    font-weight: 700;
-    color: var(--accent);
-    background: #f0ecfd;
-    padding: 5px 14px;
-    border-radius: 20px;
+    font-weight: 600;
+    color: #c4b5fd;
+    background: var(--accent-dim);
+    border: 1px solid rgba(139, 92, 246, 0.24);
+    padding: 4px 14px;
+    border-radius: var(--radius-pill);
     margin-bottom: 24px;
-    letter-spacing: 0.3px;
   }
   .hero h1 {
-    font-size: 38px;
+    font-size: 42px;
     font-weight: 700;
-    letter-spacing: -0.6px;
+    letter-spacing: -1.2px;
     line-height: 1.15;
     margin-bottom: 18px;
   }
-  .hero h1 span { color: var(--accent); }
+  .hero h1 span {
+    color: #c4b5fd;
+  }
   .hero p {
-    font-size: 15.5px;
-    color: var(--muted);
+    font-size: 16px;
+    color: var(--text-secondary);
     line-height: 1.6;
-    max-width: 520px;
+    max-width: 580px;
     margin: 0 auto 36px;
   }
+
   .cta-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
     color: #fff;
-    border: none;
-    padding: 15px 32px;
-    border-radius: 10px;
-    font-size: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    padding: 11px 24px;
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
     font-weight: 600;
     text-decoration: none;
-    box-shadow: 0 6px 18px rgba(124,58,237,0.3);
-    transition: box-shadow 0.15s ease, transform 0.05s ease, opacity 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 16px var(--accent-glow);
+    transition: all 0.15s ease;
   }
-  .cta-btn:hover { box-shadow: 0 8px 22px rgba(124,58,237,0.38); opacity: 0.96; }
-  .cta-btn:active { transform: translateY(1px); }
+  .cta-btn:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 24px rgba(139, 92, 246, 0.3);
+    transform: translateY(-1px);
+  }
+  .cta-btn:active { transform: translateY(0) scale(0.98); }
+
+  .hero-teaser {
+    margin-top: 48px;
+    background: #0e0e12;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 24px;
+    box-shadow: var(--border-highlight), 0 20px 50px rgba(0, 0, 0, 0.6);
+    text-align: left;
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 24px;
+    align-items: center;
+  }
+  @media (max-width: 760px) {
+    .hero-teaser { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 32px; }
+  }
+
+  .teaser-stats-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    border: 1px solid var(--border-subtle);
+  }
+  .mono-val {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* --- 3 Pillars Grid --- */
+  .pillars-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 40px;
+    text-align: left;
+  }
+  @media (max-width: 760px) {
+    .pillars-grid { grid-template-columns: 1fr; }
+  }
+  .pillar-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    box-shadow: var(--border-highlight);
+  }
+  .pillar-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .pillar-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
 </style>
 </head>
 <body>
 
 <nav>
-  <div class="brand"><span class="dot"></span>smart_failure_detection</div>
+  <a href="overview.html" class="brand">
+    <div class="brand-glyph">✦</div>
+    <span>smart_failure_detection</span>
+  </a>
   <div class="links">
-    <a href="#" class="active">Overview</a>
+    <a href="overview.html" class="active">Overview</a>
     <a href="index.html">Project Input</a>
     <a href="analysis-results.html">Analysis Results</a>
   </div>
 </nav>
 
 <main class="hero">
+  <div class="eyebrow">✦ Executive AI Risk Intelligence Platform</div>
   <h1>Know your startup's <span>failure risk</span> before you commit to it</h1>
-  <p>Submit your startup or project details and get a structured risk assessment, competitive read, and
-     mitigation plan — before you spend the budget finding out the hard way.</p>
+  <p>Submit your startup parameters to evaluate deterministic multi-category risk, competitive positioning, and orchestrate a multi-node LangGraph strategic mitigation roadmap.</p>
+  
   <a class="cta-btn" href="index.html">
     Analyze Startup
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
   </a>
+
+  <!-- Live Analytical Teaser -->
+  <div class="hero-teaser">
+    <div>
+      <div style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:4px;">5-VECTOR RISK MODEL</div>
+      <div style="font-size:16px; font-weight:700; color:#fff; margin-bottom:8px;">Enterprise Risk &amp; Viability Engine</div>
+      <p style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">
+        Synthesizing Financial, Market, Competition, Technical, and Operational signals with automated strategy generation.
+      </p>
+    </div>
+    <div class="teaser-stats-box">
+      <div style="text-align:center;">
+        <div style="font-size:11px; color:var(--text-muted);">FAILURE RISK</div>
+        <div class="mono-val" style="font-size:22px; font-weight:700; color:var(--risk-danger);">68%</div>
+        <span style="display:inline-block; font-size:10px; font-family:var(--font-mono); font-weight:600; padding:2px 7px; border-radius:9999px; background:var(--risk-danger-bg); color:var(--risk-danger); border:1px solid var(--risk-danger-border); margin-top:4px;">High Risk</span>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:11px; color:var(--text-muted);">STRATEGY SCORE</div>
+        <div class="mono-val" style="font-size:22px; font-weight:700; color:var(--accent);">78/100</div>
+        <span style="display:inline-block; font-size:10px; font-family:var(--font-mono); font-weight:600; padding:2px 7px; border-radius:9999px; background:var(--accent-dim); color:#c4b5fd; border:1px solid rgba(139,92,246,0.25); margin-top:4px;">Execution Ready</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 Pillars -->
+  <div class="pillars-grid">
+    <div class="pillar-card">
+      <div class="pillar-title">1. 5-Category Risk Engine</div>
+      <div class="pillar-desc">Deterministic scoring across Financial, Market, Competition, Technical, and Operational dimensions.</div>
+    </div>
+    <div class="pillar-card">
+      <div class="pillar-title">2. LangGraph AI Strategy</div>
+      <div class="pillar-desc">Multi-node graph synthesis decomposing root causes and delivering a 90-day actionable roadmap.</div>
+    </div>
+    <div class="pillar-card">
+      <div class="pillar-title">3. What-If Simulation</div>
+      <div class="pillar-desc">Simulate budget expansions and market adjustments to verify outcome deltas in real-time.</div>
+    </div>
+  </div>
 </main>
 
 </body>
