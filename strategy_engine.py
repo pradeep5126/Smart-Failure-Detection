@@ -8,9 +8,11 @@ with a robust offline deterministic heuristic engine as an automatic fallback.
 
 import json
 import os
+from dotenv import load_dotenv
 import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple, TypedDict
+load_dotenv()
 
 # =====================================================================
 # 1. State Schema Definition
@@ -98,7 +100,7 @@ def _call_gemini(prompt: str, system_instruction: str, api_key: str) -> Optional
         from google.genai import types
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-3.5-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
