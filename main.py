@@ -849,7 +849,8 @@ def get_project_strategy(project_id: int, force_refresh: bool = False):
         raise HTTPException(status_code=404, detail=f"No project found with id {project_id}")
 
     milestone2 = compute_milestone2_analysis(project)
-    strategy = get_or_generate_strategy(project, milestone2, force_refresh=force_refresh)
+    competitors = build_competitor_assessment(project)
+    strategy = get_or_generate_strategy(project, milestone2, competitors=competitors, force_refresh=force_refresh)
     return strategy
 
 
@@ -867,7 +868,8 @@ def regenerate_project_strategy(project_id: int):
         raise HTTPException(status_code=404, detail=f"No project found with id {project_id}")
 
     milestone2 = compute_milestone2_analysis(project)
-    strategy = get_or_generate_strategy(project, milestone2, force_refresh=True)
+    competitors = build_competitor_assessment(project)
+    strategy = get_or_generate_strategy(project, milestone2, competitors=competitors, force_refresh=True)
     return strategy
 
 

@@ -205,29 +205,46 @@
     display: flex;
     background: #0e0e12;
     border: 1px solid var(--border-subtle);
-    padding: 4px;
+    padding: 5px;
     border-radius: var(--radius-pill);
-    gap: 4px;
-    margin-bottom: 20px;
+    gap: 6px;
+    margin-bottom: 24px;
     width: fit-content;
+    flex-wrap: wrap;
   }
   .tab-btn {
     background: transparent;
     border: none;
     color: var(--text-secondary);
     font-family: var(--font-ui);
-    font-size: 12.5px;
+    font-size: 13px;
     font-weight: 600;
-    padding: 7px 18px;
+    padding: 8px 20px;
     border-radius: var(--radius-pill);
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: -0.1px;
   }
   .tab-btn:hover { color: #fff; }
   .tab-btn.active {
     background: var(--bg-card-subtle);
     color: #ffffff;
     box-shadow: var(--border-highlight);
+  }
+  .tab-btn.tab-btn-accent {
+    color: #c4b5fd;
+  }
+  .tab-btn.tab-btn-accent:hover {
+    color: #ffffff;
+  }
+  .tab-btn.tab-btn-accent.active {
+    background: linear-gradient(135deg, rgba(139,92,246,0.22) 0%, rgba(30,27,45,0.95) 100%);
+    color: #ffffff;
+    border: 1px solid rgba(139,92,246,0.35);
+    box-shadow: 0 0 16px var(--accent-glow), var(--border-highlight);
   }
 
   .card {
@@ -529,41 +546,8 @@
   }
 
   /* =========================================================================
-     MILESTONE 3: AI STRATEGIC ADVISOR (EXECUTIVE SLIDE-OVER DRAWER)
+     MILESTONE 3: RECOMMENDATIONS & RISK MITIGATION (LANGGRAPH AGENT)
      ========================================================================= */
-  .strategy-modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.72);
-    backdrop-filter: blur(8px);
-    z-index: 200;
-    display: none;
-    opacity: 0;
-    transition: opacity 0.25s ease;
-  }
-  .strategy-modal-overlay.active {
-    display: block;
-    opacity: 1;
-  }
-  .strategy-modal-box {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    max-width: 860px;
-    background: #0d0d11;
-    border-left: 1px solid var(--border-strong);
-    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.8);
-    z-index: 210;
-    display: flex;
-    flex-direction: column;
-    transform: translateX(100%);
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .strategy-modal-overlay.active .strategy-modal-box {
-    transform: translateX(0);
-  }
 
   .strategy-modal-header {
     padding: 16px 24px;
@@ -580,19 +564,19 @@
     gap: 12px;
   }
   .strat-icon-badge {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: 8px;
     background: var(--accent-dim);
     color: var(--accent);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
+    font-size: 16px;
     border: 1px solid rgba(139,92,246,0.25);
   }
   .strat-title {
-    font-size: 14.5px;
+    font-size: 15px;
     font-weight: 700;
     color: #fff;
     letter-spacing: -0.2px;
@@ -602,12 +586,13 @@
     gap: 6px;
     margin-top: 3px;
     flex-wrap: wrap;
+    align-items: center;
   }
   .strat-badge {
     font-size: 11px;
     font-weight: 600;
     font-family: var(--font-mono);
-    padding: 2px 7px;
+    padding: 2px 8px;
     border-radius: var(--radius-pill);
     background: var(--bg-card-subtle);
     color: var(--text-secondary);
@@ -653,64 +638,103 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 22px;
   }
 
-  .strat-score-strip {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-  }
-  @media (max-width: 600px) { .strat-score-strip { grid-template-columns: 1fr; } }
-  .strat-score-card {
-    background: var(--bg-card);
+  /* --- 5-Node LangGraph Agent Stepper --- */
+  .langgraph-stepper-wrap {
+    background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    padding: 14px 16px;
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
     box-shadow: var(--border-highlight);
+  }
+  .stepper-header {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     justify-content: space-between;
+    margin-bottom: 10px;
   }
-  .strat-score-card.primary {
-    background: linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(20,20,26,0.8) 100%);
-    border-color: rgba(139,92,246,0.28);
-  }
-  .strat-score-title {
-    font-size: 11px;
-    font-weight: 600;
+  .stepper-title {
+    font-size: 11.5px;
+    font-weight: 700;
     font-family: var(--font-mono);
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.3px;
-    margin-bottom: 4px;
+    letter-spacing: 0.4px;
   }
-  .strat-score-val {
-    font-size: 24px;
-    font-weight: 800;
+  .stepper-status {
+    font-size: 11px;
     font-family: var(--font-mono);
-    color: #fff;
-    letter-spacing: -0.5px;
-    margin: 4px 0;
+    color: var(--risk-success);
+    display: flex;
+    align-items: center;
+    gap: 5px;
   }
-  .strat-score-val.rec-val { color: var(--accent); }
-  .strat-score-sub { font-size: 11.5px; color: var(--text-secondary); font-weight: 500; }
+  .stepper-status::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--risk-success);
+    box-shadow: 0 0 8px var(--risk-success);
+  }
+  .langgraph-pipeline {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    position: relative;
+  }
+  @media (max-width: 700px) {
+    .langgraph-pipeline { grid-template-columns: 1fr; }
+  }
+  .pipeline-node {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    transition: all 0.2s ease;
+  }
+  .pipeline-node.active {
+    border-color: rgba(139,92,246,0.5);
+    background: linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(20,20,26,0.9) 100%);
+  }
+  .node-step-num {
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--accent);
+  }
+  .node-name {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .node-desc {
+    font-size: 10px;
+    color: var(--text-muted);
+    line-height: 1.3;
+  }
 
+  /* --- Section Card Container --- */
   .strat-section-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
-    padding: 18px 20px;
+    padding: 20px 22px;
     box-shadow: var(--border-highlight);
   }
   .strat-sec-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
   }
   .strat-sec-title {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     color: #fff;
     display: flex;
@@ -727,11 +751,177 @@
     color: #c4b5fd;
   }
 
+  /* --- Actionable AI Recommendation Cards --- */
+  .rec-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .rec-item-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  }
+  .rec-item-card.prio-critical { border-left-color: var(--risk-danger); }
+  .rec-item-card.prio-high { border-left-color: var(--risk-warn); }
+  .rec-item-card.prio-medium { border-left-color: var(--accent); }
+  .rec-item-card.prio-low { border-left-color: var(--risk-success); }
+
+  .rec-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .rec-item-title {
+    font-size: 15.5px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.2px;
+  }
+
+  .rec-why-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .rec-why-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .rec-why-text {
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: #e4e4e7;
+  }
+
+  .rec-action-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+  }
+  .rec-actions-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 2px;
+  }
+  .rec-step-row {
+    font-size: 13px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    line-height: 1.5;
+  }
+  .rec-step-check {
+    color: var(--risk-success);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* Expandable reasoning & M1/M2 evidence */
+  .rec-evidence-accordion {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.02);
+    overflow: hidden;
+    transition: all 0.2s ease;
+    margin-top: 2px;
+  }
+  .rec-evidence-accordion[open] {
+    background: rgba(139, 92, 246, 0.04);
+    border-color: rgba(139, 92, 246, 0.25);
+  }
+  .rec-evidence-summary {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+  }
+  .rec-evidence-summary:hover {
+    color: #c4b5fd;
+  }
+  .rec-evidence-content {
+    padding: 10px 12px 12px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .rec-evidence-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .rec-evidence-pill {
+    font-size: 11px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+    color: #e4e4e7;
+  }
+
+  /* --- Risk Mitigation Matrix Table --- */
+  .mitigation-matrix {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .mitigation-row {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 1.3fr 1.7fr 1fr;
+    gap: 14px;
+    align-items: center;
+  }
+  @media (max-width: 700px) {
+    .mitigation-row { grid-template-columns: 1fr; }
+  }
+  .mit-risk-side { display: flex; flex-direction: column; gap: 4px; }
+  .mit-risk-title { font-size: 13px; font-weight: 600; color: #fff; }
+  .mit-action-side { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+  .mit-impact-side {
+    font-size: 12px;
+    color: #a1a1aa;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    line-height: 1.45;
+  }
+
+  /* --- Strategic Reasoning & Scenarios --- */
   .strat-scenarios-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 14px;
-    margin-top: 12px;
+    margin-top: 14px;
   }
   @media (max-width: 600px) { .strat-scenarios-grid { grid-template-columns: 1fr; } }
   .strat-scenario-box {
@@ -748,7 +938,7 @@
     border-color: rgba(245, 158, 11, 0.20);
   }
   .strat-scenario-label {
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 700;
     margin-bottom: 6px;
   }
@@ -757,68 +947,58 @@
   .strat-scenario-text {
     font-size: 12.5px;
     color: var(--text-secondary);
-    line-height: 1.5;
+    line-height: 1.55;
   }
 
-  .strat-root-causes-list { display: flex; flex-direction: column; gap: 10px; }
-  .strat-rc-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    padding: 12px 14px;
+  /* --- Supporting Score Strip --- */
+  .strat-score-strip {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
   }
-  .strat-rc-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 4px;
-  }
-  .strat-rc-cat { font-size: 13px; font-weight: 700; color: #fff; }
-  .strat-rc-finding { font-size: 12.5px; color: var(--text-primary); margin-bottom: 4px; }
-  .strat-rc-impact { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
-
-  .strat-roadmap-timeline { display: flex; flex-direction: column; gap: 12px; }
-  .strat-phase-block {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    padding: 14px 16px;
-  }
-  .strat-phase-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 6px;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .strat-phase-name { font-size: 13.5px; font-weight: 700; color: var(--accent); }
-  .strat-phase-goal { font-size: 12px; color: var(--text-muted); }
-  .strat-actions-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-  .strat-action-item {
+  .strat-score-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    box-shadow: var(--border-highlight);
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 16px;
+    flex-wrap: wrap;
   }
-  .strat-action-title { font-size: 12.5px; font-weight: 600; color: #fff; margin-bottom: 2px; }
-  .strat-action-detail { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
-  .strat-action-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+  .strat-score-card.primary {
+    background: linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(20,20,26,0.85) 100%);
+    border-color: rgba(139,92,246,0.28);
+  }
+  .strat-score-title {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 2px;
+  }
+  .strat-score-val {
+    font-size: 26px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+  .strat-score-val.rec-val { color: var(--accent); }
 
-  .strat-moat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .strat-moat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
   @media (max-width: 600px) { .strat-moat-grid { grid-template-columns: 1fr; } }
   .strat-moat-box {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
-    padding: 10px 12px;
+    padding: 12px 14px;
   }
-  .strat-moat-title { font-size: 11px; font-weight: 600; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 2px; }
-  .strat-moat-content { font-size: 12px; color: #fff; font-weight: 500; }
+  .strat-moat-title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; }
+  .strat-moat-content { font-size: 12.5px; color: #fff; font-weight: 500; line-height: 1.45; }
   .strat-barriers-list { padding-left: 16px; margin-top: 6px; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
 
   .strat-spinner {
@@ -884,8 +1064,8 @@
       <p class="subtitle" id="projectSubtitle"></p>
     </div>
     <div class="header-actions">
-      <button class="btn-primary" id="headerStrategyBtn" onclick="openStrategyModal()">
-        <span>✦</span> AI Strategic Advisor
+      <button class="btn-primary" id="headerStrategyBtn" onclick="switchTab('recommendations')">
+        <span>✦</span> Recommendations
       </button>
       <button class="btn-secondary" onclick="window.print()">Export Brief</button>
     </div>
@@ -896,6 +1076,7 @@
     <button class="tab-btn active" id="tabBtnRisk" data-tab="risk">Risk Assessment</button>
     <button class="tab-btn" id="tabBtnCompetition" data-tab="competition">Competition Assessment</button>
     <button class="tab-btn" id="tabBtnMilestone2" data-tab="milestone2">SWOT &amp; Feasibility</button>
+    <button class="tab-btn tab-btn-accent" id="tabBtnRecommendations" data-tab="recommendations">✦ Recommendations</button>
   </div>
 
   <!-- ===================== TAB: RISK ASSESSMENT ===================== -->
@@ -932,8 +1113,8 @@
           <span class="ai-summary-badge">✦ EXECUTIVE AI SUMMARY</span>
           <p class="ai-summary-text" id="aiSummaryText">Loading summary...</p>
         </div>
-        <button class="btn-primary" id="viewExplanationBtn" style="flex-shrink:0;">
-          View Detailed Strategy & Reasoning →
+        <button class="btn-primary" id="viewExplanationBtn" onclick="switchTab('recommendations')" style="flex-shrink:0;">
+          View Recommendations →
         </button>
       </div>
     </div>
@@ -1070,43 +1251,41 @@
     </div>
 
   </div>
-</main>
 
-<!-- ===================== MILESTONE 3: AI STRATEGIC ADVISOR SLIDE-OVER DRAWER ===================== -->
-<div class="strategy-modal-overlay" id="strategyModalOverlay" onclick="handleDrawerOverlayClick(event)">
-  <div class="strategy-modal-box" role="dialog" aria-modal="true" aria-labelledby="stratModalTitle">
-    <div class="strategy-modal-header">
-      <div class="strat-head-left">
-        <div class="strat-icon-badge">✦</div>
+  <!-- ===================== TAB: RECOMMENDATIONS (MILESTONE 3) ===================== -->
+  <div class="tab-panel" id="tabPanelRecommendations" style="display:none;">
+
+    <!-- Recommendations Tab Header Bar -->
+    <div class="card" style="margin-bottom: 20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
         <div>
-          <div class="strat-title" id="stratModalTitle">AI Strategic Advisor &amp; Mitigation Roadmap</div>
-          <div class="strat-meta-badges">
-            <span class="strat-badge orchestrator" id="stratOrchestratorBadge">LangGraph StateGraph</span>
-            <span class="strat-badge provider" id="stratProviderBadge">Loading provider...</span>
-            <span class="strat-badge" id="stratTimeBadge"></span>
-          </div>
+          <h2>✦ Strategic Recommendations &amp; Risk Mitigation</h2>
+          <p class="card-sub" style="margin-bottom:0;">Action-oriented recommendations and de-risking protocols synthesized by 5-node LangGraph workflow</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="strat-badge orchestrator" id="tabOrchestratorBadge">LangGraph Agent · 5 Nodes</span>
+          <span class="strat-badge provider" id="tabProviderBadge">Loading provider...</span>
+          <span class="strat-badge" id="tabTimeBadge" style="display:none;"></span>
+          <button class="strat-btn-regen" id="tabRegenBtn" title="Re-run LangGraph recommendations workflow">
+            <span id="tabRegenSpinner" style="display:none;" class="strat-spinner"></span>
+            <span id="tabRegenLabel">↻ Regenerate</span>
+          </button>
         </div>
       </div>
-      <div class="strat-head-actions">
-        <button class="strat-btn-regen" id="stratRegenBtn" title="Re-run LangGraph strategy generation">
-          <span id="stratRegenSpinner" style="display:none;" class="strat-spinner"></span>
-          <span id="stratRegenLabel">↻ Regenerate</span>
-        </button>
-        <button class="strat-btn-close" id="stratCloseBtn" aria-label="Close drawer">✕</button>
-      </div>
     </div>
 
-    <div class="strategy-modal-body" id="stratModalBody">
-      <div class="strat-loading-wrap" id="stratLoadingWrap">
-        <div class="strat-loading-spinner"></div>
-        <p>Orchestrating multi-node LangGraph strategic reasoning...</p>
-      </div>
-      <div id="stratContentWrap" style="display:none; flex-direction:column; gap:20px;">
-        <!-- Dynamically injected via JavaScript -->
-      </div>
+    <div class="strat-loading-wrap" id="tabLoadingWrap" style="display:none;">
+      <div class="strat-loading-spinner"></div>
+      <p>Orchestrating 5-node LangGraph recommendation workflow...</p>
     </div>
+
+    <div id="tabContentWrap" style="display:flex; flex-direction:column; gap:20px;">
+      <!-- Dynamically rendered via JavaScript -->
+    </div>
+
   </div>
-</div>
+</main>
+
 
 <footer>
   <p class="disclaimer">
@@ -1510,47 +1689,25 @@ function renderAll(data) {
 }
 
 /* ============================================================================
-   MILESTONE 3: AI STRATEGIC ADVISOR SLIDE-OVER DRAWER LOGIC
+   MILESTONE 3: RECOMMENDATIONS FULL ANALYSIS VIEW & TAB LOGIC
 ============================================================================ */
 
-function openStrategyModal() {
-  const overlay = document.getElementById("strategyModalOverlay");
-  overlay.classList.add("active");
-  document.body.style.overflow = "hidden";
-
-  if (!currentStrategyData) {
-    fetchStrategy(false);
-  }
-}
-
-function closeStrategyModal() {
-  const overlay = document.getElementById("strategyModalOverlay");
-  overlay.classList.remove("active");
-  document.body.style.overflow = "";
-}
-
-function handleDrawerOverlayClick(e) {
-  if (e.target === document.getElementById("strategyModalOverlay")) {
-    closeStrategyModal();
-  }
-}
-
 async function fetchStrategy(forceRefresh = false) {
-  const loadingWrap = document.getElementById("stratLoadingWrap");
-  const contentWrap = document.getElementById("stratContentWrap");
-  const regenBtn = document.getElementById("stratRegenBtn");
-  const regenSpinner = document.getElementById("stratRegenSpinner");
-  const regenLabel = document.getElementById("stratRegenLabel");
+  const loadingWrap = document.getElementById("tabLoadingWrap");
+  const contentWrap = document.getElementById("tabContentWrap");
+  const regenBtn = document.getElementById("tabRegenBtn");
+  const regenSpinner = document.getElementById("tabRegenSpinner");
+  const regenLabel = document.getElementById("tabRegenLabel");
 
   if (!currentProjectId) return;
 
   if (forceRefresh) {
-    regenBtn.disabled = true;
-    regenSpinner.style.display = "inline-block";
-    regenLabel.textContent = "Synthesizing...";
+    if (regenBtn) regenBtn.disabled = true;
+    if (regenSpinner) regenSpinner.style.display = "inline-block";
+    if (regenLabel) regenLabel.textContent = "Synthesizing...";
   } else {
-    loadingWrap.style.display = "block";
-    contentWrap.style.display = "none";
+    if (loadingWrap) loadingWrap.style.display = "block";
+    if (contentWrap) contentWrap.style.display = "none";
   }
 
   try {
@@ -1566,193 +1723,302 @@ async function fetchStrategy(forceRefresh = false) {
     }
     const data = await res.json();
     currentStrategyData = data;
-    renderStrategyModal(data);
-    loadingWrap.style.display = "none";
-    contentWrap.style.display = "flex";
+    renderRecommendationsView(data);
+    if (loadingWrap) loadingWrap.style.display = "none";
+    if (contentWrap) contentWrap.style.display = "flex";
   } catch (err) {
-    loadingWrap.innerHTML = `
-      <div style="color:var(--risk-danger); margin-bottom:8px; font-weight:700;">Unable to Generate Strategic Advisory</div>
-      <div style="font-size:12.5px; color:var(--text-muted); line-height:1.5;">${err.message}</div>
-      <button class="btn-primary" style="margin-top:16px;" onclick="fetchStrategy(true)">↻ Retry Strategy Generation</button>
-    `;
-    loadingWrap.style.display = "block";
-    contentWrap.style.display = "none";
+    if (loadingWrap) {
+      loadingWrap.innerHTML = `
+        <div style="color:var(--risk-danger); margin-bottom:8px; font-weight:700;">Unable to Generate Recommendations</div>
+        <div style="font-size:12.5px; color:var(--text-muted); line-height:1.5;">${err.message}</div>
+        <button class="btn-primary" style="margin-top:16px;" onclick="fetchStrategy(true)">↻ Retry Generation</button>
+      `;
+      loadingWrap.style.display = "block";
+    }
+    if (contentWrap) contentWrap.style.display = "none";
   } finally {
-    regenBtn.disabled = false;
-    regenSpinner.style.display = "none";
-    regenLabel.textContent = "↻ Regenerate";
+    if (regenBtn) regenBtn.disabled = false;
+    if (regenSpinner) regenSpinner.style.display = "none";
+    if (regenLabel) regenLabel.textContent = "↻ Regenerate";
   }
 }
 
-function renderStrategyModal(d) {
+function renderRecommendationsView(d) {
   const pInfo = d.provider_info || {};
-  document.getElementById("stratOrchestratorBadge").textContent = pInfo.orchestrator || "LangGraph StateGraph";
-  const pName = (pInfo.name || "offline").toUpperCase();
-  document.getElementById("stratProviderBadge").textContent =
-    pName === "GEMINI" ? "Google Gemini" : pName === "OPENAI" ? "OpenAI" : "Offline Heuristic Engine";
+  const orchestratorEl = document.getElementById("tabOrchestratorBadge");
+  if (orchestratorEl) orchestratorEl.textContent = pInfo.orchestrator || "LangGraph Agent · 5 Nodes";
   
-  if (d.generated_at) {
+  const providerEl = document.getElementById("tabProviderBadge");
+  const pName = (pInfo.name || "offline").toUpperCase();
+  if (providerEl) {
+    providerEl.textContent = pName === "GEMINI" ? "Google Gemini" : pName === "OPENAI" ? "OpenAI" : "Offline Heuristic Engine";
+  }
+  
+  const timeEl = document.getElementById("tabTimeBadge");
+  if (timeEl && d.generated_at) {
     const dt = new Date(d.generated_at);
-    document.getElementById("stratTimeBadge").textContent = `Updated: ${dt.toLocaleTimeString()}`;
+    timeEl.textContent = `Updated: ${dt.toLocaleTimeString()}`;
+    timeEl.style.display = "inline-block";
   }
 
   const scores = d.scores || {};
-  const synth = d.executive_synthesis || {};
-  const rootCauses = d.root_causes || [];
-  const roadmap = d.mitigation_roadmap || [];
-  const positioning = d.positioning_analysis || {};
+  const recs = Array.isArray(d.recommendations) ? d.recommendations : [];
+  const mitigations = Array.isArray(d.risk_mitigation) ? d.risk_mitigation : [];
+  const reasoning = d.strategic_reasoning || {};
+  const supporting = d.supporting_insights || {};
+  const moat = supporting.competitive_moat || {};
+  const scenarios = reasoning.scenario_forecasts || {};
 
-  const contentWrap = document.getElementById("stratContentWrap");
+  const contentWrap = document.getElementById("tabContentWrap");
+  if (!contentWrap) return;
+
   contentWrap.innerHTML = `
-    <!-- 1. Executive Score Strip -->
-    <div class="strat-score-strip">
-      <div class="strat-score-card primary">
-        <div class="strat-score-title">Strategic Recommendation Score</div>
-        <div class="strat-score-val rec-val">${scores.strategic_recommendation_score ?? 75}<span style="font-size:13px; font-weight:600; color:var(--text-muted)">/100</span></div>
-        <span class="ring-tag tag-violet">${synth.recommendation_label || "Execution Ready"}</span>
+    <!-- 1. AI Recommendations (Simplified, Action-Oriented Cards) -->
+    <div class="strat-section-card">
+      <div class="strat-sec-header">
+        <div class="strat-sec-title"><span>✦</span> Actionable AI Recommendations</div>
+        <span class="strat-sec-pill">${recs.length} Priority Actions</span>
       </div>
-      <div class="strat-score-card">
-        <div class="strat-score-title">Baseline Failure Risk (M2)</div>
-        <div class="strat-score-val" style="color:${scoreColor(scores.baseline_failure_risk_pct ?? 50)}">${scores.baseline_failure_risk_pct ?? 50}%</div>
-        <span class="ring-tag tag-danger">${scores.baseline_risk_level || "Risk Level"} · Baseline</span>
-      </div>
-      <div class="strat-score-card">
-        <div class="strat-score-title">Feasibility Index</div>
-        <div class="strat-score-val" style="color:${feasColor(scores.feasibility_overall_score ?? 60)}">${scores.feasibility_overall_score ?? 60}<span style="font-size:13px; font-weight:600; color:var(--text-muted)">/100</span></div>
-        <span class="ring-tag tag-cyan">Operational Alignment</span>
+      <div class="rec-card-list">
+        ${recs.map(r => {
+          const prio = (r.priority || "High").toLowerCase();
+          const prioCls = prio === "critical" ? "prio-critical" : prio === "high" ? "prio-high" : prio === "low" ? "prio-low" : "prio-medium";
+          const tagCls = prio === "critical" ? "tag-danger" : prio === "high" ? "tag-warn" : prio === "low" ? "tag-success" : "tag-violet";
+          const triggers = Array.isArray(r.triggered_by) ? r.triggered_by : [];
+          const actionSteps = Array.isArray(r.action_steps) ? r.action_steps : [];
+
+          return `
+            <div class="rec-item-card ${prioCls}">
+              <div class="rec-card-top">
+                <div class="rec-item-title">${r.title}</div>
+                <span class="ring-tag ${tagCls}">${(r.priority || "High").toUpperCase()} PRIORITY</span>
+              </div>
+              
+              <div class="rec-why-box">
+                <div class="rec-why-label">Why this recommendation?</div>
+                <div class="rec-why-text">${r.explanation}</div>
+              </div>
+
+              ${actionSteps.length > 0 ? `
+                <div class="rec-action-steps">
+                  <div class="rec-actions-label">Actions:</div>
+                  ${actionSteps.map(step => `
+                    <div class="rec-step-row">
+                      <span class="rec-step-check">✓</span>
+                      <span>${step}</span>
+                    </div>
+                  `).join("")}
+                </div>
+              ` : ""}
+
+              ${triggers.length > 0 ? `
+                <details class="rec-evidence-accordion">
+                  <summary class="rec-evidence-summary">
+                    <span>🔍 View reasoning &amp; M1/M2 evidence</span>
+                    <span style="font-size:10px; color:var(--text-muted);">▾</span>
+                  </summary>
+                  <div class="rec-evidence-content">
+                    <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.3px;">Underlying Triggers &amp; Indicators:</div>
+                    <div class="rec-evidence-tags">
+                      ${triggers.map(t => `<span class="rec-evidence-pill">${t.source || "M2"} → ${t.finding || ""}</span>`).join("")}
+                    </div>
+                  </div>
+                </details>
+              ` : ""}
+            </div>
+          `;
+        }).join("")}
       </div>
     </div>
 
-    <!-- 2. Executive Strategic Verdict & Comparative Scenarios -->
+    <!-- 2. Risk Mitigation Matrix -->
     <div class="strat-section-card">
       <div class="strat-sec-header">
-        <div class="strat-sec-title"><span>🏛️</span> Executive Strategic Verdict</div>
-        <span class="strat-sec-pill">LangGraph Synthesis</span>
+        <div class="strat-sec-title"><span>🛡️</span> Risk Mitigation Matrix</div>
+        <span class="strat-sec-pill">${mitigations.length} De-Risking Protocols</span>
       </div>
-      <p style="font-size:13px; line-height:1.6; color:var(--text-primary);">${synth.executive_verdict || "Strategic synthesis generated across analytical nodes."}</p>
+      <div class="mitigation-matrix">
+        ${mitigations.map(m => {
+          const prio = (m.priority || "High").toLowerCase();
+          const tagCls = prio === "critical" ? "tag-danger" : prio === "high" ? "tag-warn" : "tag-violet";
+          return `
+            <div class="mitigation-row">
+              <div class="mit-risk-side">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span class="ring-tag ${tagCls}">${m.risk_category || "Risk Factor"}</span>
+                </div>
+                <div class="mit-risk-title">${m.identified_risk}</div>
+              </div>
+              <div class="mit-action-side">
+                <strong style="color:#fff;">Recommended Action:</strong> ${m.recommended_mitigation}
+                <div style="margin-top:4px; font-size:11.5px; color:var(--text-muted); font-family:var(--font-mono);">
+                  Timeframe: ${m.timeframe || "Days 0–30"}
+                </div>
+              </div>
+              <div class="mit-impact-side">
+                <strong style="color:var(--risk-success);">Expected Impact:</strong> ${m.expected_impact || "Reduces uncertainty."}
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </div>
+
+    <!-- 3. Strategic Reasoning & Scenario Modeling -->
+    <div class="strat-section-card">
+      <div class="strat-sec-header">
+        <div class="strat-sec-title"><span>🧠</span> Strategic Reasoning</div>
+        <span class="strat-sec-pill">Analytical Synthesis</span>
+      </div>
+      <p style="font-size:13.5px; line-height:1.6; color:var(--text-primary); margin-bottom:12px;">
+        ${reasoning.explanation || supporting.executive_verdict || "Strategic synthesis derived from Milestone 1/2 indicators."}
+      </p>
+      ${reasoning.core_logic ? `
+        <div style="background:var(--bg-surface); padding:12px 16px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); font-size:12.5px; color:var(--text-secondary); line-height:1.55; margin-bottom:14px;">
+          <strong style="color:#fff;">Logical Derivation:</strong> ${reasoning.core_logic}
+        </div>
+      ` : ""}
       
       <div class="strat-scenarios-grid">
         <div class="strat-scenario-box bull">
           <div class="strat-scenario-label">▲ Bull Case Scenario (Upside)</div>
-          <div class="strat-scenario-text">${synth.bull_case_scenario || "Rapid early adoption and strong willingness to pay."}</div>
+          <div class="strat-scenario-text">${scenarios.bull_case || "Disciplined customer validation yields high retention and fast sales velocity."}</div>
         </div>
         <div class="strat-scenario-box bear">
           <div class="strat-scenario-label">▼ Bear Case Scenario (Downside Risk)</div>
-          <div class="strat-scenario-text">${synth.bear_case_scenario || "Customer acquisition friction and burn escalation."}</div>
+          <div class="strat-scenario-text">${scenarios.bear_case || "Broad targeting and elevated marketing spend exhaust cash reserves before sustainable retention."}</div>
         </div>
       </div>
     </div>
 
-    <!-- 3. Decomposed Root Causes -->
+    <!-- 4. 5-Node LangGraph Agent Workflow Status -->
+    <div class="langgraph-stepper-wrap">
+      <div class="stepper-header">
+        <span class="stepper-title">LangGraph 5-Node Agent Pipeline</span>
+        <span class="stepper-status">5 Nodes Verified &amp; Completed</span>
+      </div>
+      <div class="langgraph-pipeline">
+        <div class="pipeline-node active">
+          <span class="node-step-num">Node 1</span>
+          <span class="node-name">Data Ingestion</span>
+          <span class="node-desc">M1/M2 Results Consolidated</span>
+        </div>
+        <div class="pipeline-node active">
+          <span class="node-step-num">Node 2</span>
+          <span class="node-name">Risk Analysis</span>
+          <span class="node-desc">Problem Hotspots Isolated</span>
+        </div>
+        <div class="pipeline-node active">
+          <span class="node-step-num">Node 3</span>
+          <span class="node-name">Strategic Reasoning</span>
+          <span class="node-desc">Actionable Solutions Formulated</span>
+        </div>
+        <div class="pipeline-node active">
+          <span class="node-step-num">Node 4</span>
+          <span class="node-name">Validation</span>
+          <span class="node-desc">M2 Baselines Preserved</span>
+        </div>
+        <div class="pipeline-node active">
+          <span class="node-step-num">Node 5</span>
+          <span class="node-name">Report Generation</span>
+          <span class="node-desc">Recommendations Structured</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Supporting Strategic Insights (Strategic Score & Competitive Moat) -->
     <div class="strat-section-card">
       <div class="strat-sec-header">
-        <div class="strat-sec-title"><span>🔍</span> Decomposed Root Causes &amp; Vulnerabilities</div>
-        <span class="strat-sec-pill">${rootCauses.length} Priority Drivers</span>
+        <div class="strat-sec-title"><span>📊</span> Supporting Strategic Insights</div>
+        <span class="strat-sec-pill">Strategic Readiness</span>
       </div>
-      <div class="strat-root-causes-list">
-        ${rootCauses.map(rc => `
-          <div class="strat-rc-card">
-            <div class="strat-rc-head">
-              <span class="strat-rc-cat">${rc.category}</span>
-              <span class="ring-tag ${rc.severity === "High" ? "tag-danger" : rc.severity === "Medium" ? "tag-warn" : "tag-success"}">${rc.severity} Severity</span>
-            </div>
-            <div class="strat-rc-finding">${rc.finding}</div>
-            <div class="strat-rc-impact"><strong>Potential Impact:</strong> ${rc.impact}</div>
+      
+      <div class="strat-score-strip">
+        <div class="strat-score-card primary">
+          <div>
+            <div class="strat-score-title">Strategic Recommendation Score</div>
+            <div style="font-size:12.5px; color:var(--text-secondary); margin-top:2px;">Overall actionability and de-risking feasibility</div>
           </div>
-        `).join("")}
-      </div>
-    </div>
-
-    <!-- 4. 3-Phase Tactical Mitigation Roadmap -->
-    <div class="strat-section-card">
-      <div class="strat-sec-header">
-        <div class="strat-sec-title"><span>🗓️</span> Phased Mitigation Action Plan</div>
-        <span class="strat-sec-pill">0–90+ Day Execution Roadmap</span>
-      </div>
-      <div class="strat-roadmap-timeline">
-        ${roadmap.map(phase => `
-          <div class="strat-phase-block">
-            <div class="strat-phase-head">
-              <div class="strat-phase-name">${phase.phase}</div>
-              <div class="strat-phase-goal">${phase.focus}</div>
-            </div>
-            <p style="font-size:12px; color:var(--text-secondary); margin-bottom:10px;"><strong>Milestone Target:</strong> ${phase.milestone_goal}</p>
-            <div class="strat-actions-list">
-              ${(phase.actions || []).map(act => `
-                <div class="strat-action-item">
-                  <div>
-                    <div class="strat-action-title">${act.title}</div>
-                    <div class="strat-action-detail">${act.detail}</div>
-                  </div>
-                  <div class="strat-action-meta">
-                    <span class="ring-tag ${act.priority === "Critical" ? "tag-danger" : act.priority === "High" ? "tag-warn" : "tag-violet"}">${act.priority}</span>
-                    <span style="font-size:10.5px; color:var(--text-muted); font-family:var(--font-mono);">${act.owner || "Founder"}</span>
-                  </div>
-                </div>
-              `).join("")}
-            </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div class="strat-score-val rec-val">${scores.strategic_recommendation_score ?? 75}<span style="font-size:14px; font-weight:600; color:var(--text-muted)">/100</span></div>
+            <span class="ring-tag tag-violet">${supporting.recommendation_label || "Execution Ready"}</span>
           </div>
-        `).join("")}
+        </div>
       </div>
-    </div>
 
-    <!-- 5. Moat & Defensibility Playbook -->
-    <div class="strat-section-card">
-      <div class="strat-sec-header">
-        <div class="strat-sec-title"><span>🛡️</span> Competitive Moat &amp; Defensibility Playbook</div>
-        <span class="strat-sec-pill">Defensibility Layer</span>
-      </div>
-      <div class="strat-moat-grid">
-        <div class="strat-moat-box">
-          <div class="strat-moat-title">CORE VALUE PROPOSITION</div>
-          <div class="strat-moat-content">${positioning.core_value_proposition || "Targeted domain solution."}</div>
+      ${moat.defensibility_strategy || moat.core_value_prop || moat.core_value_proposition ? `
+        <div class="strat-moat-grid">
+          <div class="strat-moat-box">
+            <div class="strat-moat-title">Core Value Proposition</div>
+            <div class="strat-moat-content">${moat.core_value_prop || moat.core_value_proposition || "Specialized domain solution tailored to target customer requirements."}</div>
+          </div>
+          <div class="strat-moat-box">
+            <div class="strat-moat-title">Differentiation Angle</div>
+            <div class="strat-moat-content">${moat.primary_differentiation_angle || "Vertical integration and specialized telemetry workflows."}</div>
+          </div>
+          <div class="strat-moat-box" style="grid-column: 1 / -1;">
+            <div class="strat-moat-title">Defensibility Moat &amp; Barriers to Entry</div>
+            <div class="strat-moat-content">${moat.defensibility_strategy || "Build proprietary workflow integrations and high switching barriers early with anchor accounts."}</div>
+            ${Array.isArray(moat.entry_barriers) && moat.entry_barriers.length > 0 ? `
+              <ul class="strat-barriers-list">
+                ${moat.entry_barriers.map(b => `<li>${b}</li>`).join("")}
+              </ul>
+            ` : ""}
+          </div>
         </div>
-        <div class="strat-moat-box">
-          <div class="strat-moat-title">DIFFERENTIATION ANGLE</div>
-          <div class="strat-moat-content">${positioning.primary_differentiation_angle || "Proprietary workflow telemetry."}</div>
-        </div>
-        <div class="strat-moat-box" style="grid-column: 1 / -1;">
-          <div class="strat-moat-title">DEFENSIBILITY STRATEGY</div>
-          <div class="strat-moat-content">${positioning.defensibility_strategy || "Workflow integration and switching barriers."}</div>
-        </div>
-      </div>
-      <div class="strat-moat-title" style="margin-top:10px;">RECOMMENDED ENTRY BARRIERS TO CONSTRUCT:</div>
-      <ul class="strat-barriers-list">
-        ${(positioning.barrier_to_entry_recommendations || []).map(b => `<li>${b}</li>`).join("")}
-      </ul>
+      ` : ""}
     </div>
   `;
 }
-
-// Drawer Event Listeners
-document.getElementById("viewExplanationBtn").addEventListener("click", openStrategyModal);
-document.getElementById("stratCloseBtn").addEventListener("click", closeStrategyModal);
-document.getElementById("stratRegenBtn").addEventListener("click", () => fetchStrategy(true));
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && document.getElementById("strategyModalOverlay").classList.contains("active")) {
-    closeStrategyModal();
-  }
-});
 
 /* ===================== Tab switching ===================== */
 const tabButtons = {
   risk: document.getElementById("tabBtnRisk"),
   competition: document.getElementById("tabBtnCompetition"),
   milestone2: document.getElementById("tabBtnMilestone2"),
+  recommendations: document.getElementById("tabBtnRecommendations"),
 };
 const tabPanels = {
   risk: document.getElementById("tabPanelRisk"),
   competition: document.getElementById("tabPanelCompetition"),
   milestone2: document.getElementById("tabPanelMilestone2"),
+  recommendations: document.getElementById("tabPanelRecommendations"),
 };
-Object.entries(tabButtons).forEach(([key, btn]) => {
-  btn.addEventListener("click", () => {
-    Object.keys(tabButtons).forEach(k => {
-      tabButtons[k].classList.toggle("active", k === key);
-      tabPanels[k].style.display = k === key ? "block" : "none";
-    });
+
+function switchTab(tabKey) {
+  if (!tabButtons[tabKey]) return;
+  Object.keys(tabButtons).forEach(k => {
+    tabButtons[k].classList.toggle("active", k === tabKey);
+    tabPanels[k].style.display = k === tabKey ? "block" : "none";
   });
+
+  if (tabKey === "recommendations") {
+    if (!currentStrategyData) {
+      fetchStrategy(false);
+    }
+  }
+
+  // Smoothly scroll tab into view if needed
+  const tabBar = document.querySelector(".tab-bar");
+  if (tabBar) {
+    const rect = tabBar.getBoundingClientRect();
+    if (rect.top < 0 || rect.top > window.innerHeight) {
+      tabBar.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+}
+
+Object.entries(tabButtons).forEach(([key, btn]) => {
+  if (btn) {
+    btn.addEventListener("click", () => switchTab(key));
+  }
 });
+
+// Recommendations Action Listeners
+const tabRegenBtn = document.getElementById("tabRegenBtn");
+if (tabRegenBtn) {
+  tabRegenBtn.addEventListener("click", () => fetchStrategy(true));
+}
 
 /* ===================== Bootstrap ===================== */
 loadAnalysis();

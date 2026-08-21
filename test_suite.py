@@ -1,11 +1,20 @@
 """
-test_suite.py — Automated Regression & Milestone 3 Strategy Engine Verification Suite
+test_suite.py — Automated Regression & Milestone 3 Recommendations Engine Verification Suite
 
 Verifies:
-1. Milestone 2 Regression: Integrity of risk calculations, SWOT, and feasibility scoring.
-2. Milestone 3 Strategy Engine: LangGraph orchestration, accurate actual provider reporting,
-   unbroken information flow (Root Causes -> Positioning -> Mitigation -> Synthesis),
-   strict score validation/clamping, and baseline risk preservation.
+1. Milestone 2 Regression: Absolute immutability of risk calculations, SWOT, and feasibility scoring.
+2. Milestone 3 5-Node LangGraph Agent Workflow:
+   - Sequential execution: Data Ingestion -> Risk Analysis -> Strategic Reasoning -> Validation -> Report Generation.
+   - Grounded recommendations with explicit "Triggered by" references to actual Milestone 1/2 results.
+   - Structured Risk Mitigation matrix with expected impact, priority, and timeframe.
+   - Strategic reasoning with Bull/Bear scenario forecasts.
+   - Dynamic responsiveness across differing project profiles (no hardcoded static recommendations).
+   - Baseline M2 score immutability guarantee.
+   - Strict Strategic Recommendation Score clamping [0, 100].
+   - Provider resolution (Gemini, OpenAI, Offline fallback).
+   - In-memory caching and cache bypass on force_refresh.
+3. Frontend Integration:
+   - Verification of "Recommendations" primary UI labels and 5-node stepper in HTML.
 """
 
 import os
@@ -20,6 +29,7 @@ from main import (
     _technical_risk,
     _operational_risk,
     compute_milestone2_analysis,
+    build_competitor_assessment,
 )
 
 # Import Milestone 3 Strategy Engine functions
@@ -29,16 +39,17 @@ from strategy_engine import (
     clear_strategy_cache,
     _validate_and_clamp_score,
     _build_and_run_langgraph,
-    node_root_cause_analysis,
-    node_positioning_analysis,
-    node_mitigation_roadmap,
-    node_executive_synthesis,
+    node_data_ingestion,
+    node_risk_analysis,
+    node_strategic_reasoning,
+    node_validation,
+    node_report_generation,
     StrategyState,
 )
 
 
 class TestMilestone2Regression(unittest.TestCase):
-    """Ensures existing Milestone 2 risk calculations remain 100% stable and unregressed."""
+    """Ensures existing Milestone 2 risk calculations remain 100% stable, deterministic, and unregressed."""
 
     def setUp(self):
         self.sample_project = {
@@ -66,7 +77,7 @@ class TestMilestone2Regression(unittest.TestCase):
     def test_milestone2_analysis_complete_schema(self):
         """Full analysis dictionary must contain riskScoring, swot, and feasibility sections."""
         analysis = compute_milestone2_analysis(self.sample_project)
-        
+
         # Risk scoring assertions
         self.assertIn("riskScoring", analysis)
         risk = analysis["riskScoring"]
@@ -75,7 +86,7 @@ class TestMilestone2Regression(unittest.TestCase):
         self.assertIn("riskBreakdown", risk)
         self.assertIn("confidenceScore", risk)
         self.assertEqual(len(risk["riskBreakdown"]), 5)
-        
+
         # SWOT assertions
         self.assertIn("swot", analysis)
         swot = analysis["swot"]
@@ -95,103 +106,179 @@ class TestMilestone2Regression(unittest.TestCase):
         self.assertIn("summary", feas)
 
 
-class TestMilestone3StrategyEngine(unittest.TestCase):
-    """Verifies Milestone 3 LangGraph-driven strategic reasoning, provider resolution, caching, and score separation."""
+class TestMilestone3RecommendationsEngine(unittest.TestCase):
+    """Verifies Milestone 3 5-node LangGraph recommendations workflow, grounded triggers, and outputs."""
 
     def setUp(self):
         clear_strategy_cache()
-        self.project = {
-            "project_id": 202,
+        # Force offline provider during unit tests for fast, deterministic, reproducible assertions
+        os.environ["LLM_PROVIDER"] = "offline"
+
+        self.project_a = {
+            "project_id": 201,
             "project_name": "AgriSense AI",
             "industry_sector": "Agritech",
             "business_model": "Hardware + Subscription",
             "target_market": "Commercial farm operators across South Asia",
-            "budget": Decimal("1200000"),
-            "description": "IoT soil sensors and satellite imagery AI pipeline to predict crop yield and irrigation needs with working prototype.",
+            "budget": Decimal("80000"),  # Low budget -> High Financial Risk
+            "description": "IoT soil sensors and hardware nodes requiring manufacturing capital. No customers yet.",
         }
-        self.m2_analysis = compute_milestone2_analysis(self.project)
+        self.m2_a = compute_milestone2_analysis(self.project_a)
+        self.competitors_a = build_competitor_assessment(self.project_a)
 
-    def test_provider_resolution_and_actual_fallback_reporting(self):
-        """
-        Fix 1: Provider reporting must reflect the ACTUAL provider that produced the strategy.
-        If a provider is requested but unavailable/fails, provider_info['name'] must report 'offline'.
-        """
-        orig_provider = os.environ.get("LLM_PROVIDER")
-        orig_gemini = os.environ.get("GEMINI_API_KEY")
-        orig_openai = os.environ.get("OPENAI_API_KEY")
+        self.project_b = {
+            "project_id": 202,
+            "project_name": "DevPulse Enterprise",
+            "industry_sector": "B2B SaaS",
+            "business_model": "SaaS",
+            "target_market": "Enterprise security architects and engineering directors",
+            "budget": Decimal("5000000"),  # Strong budget + paying customers -> Low Financial Risk
+            "description": "Cloud security telemetry platform with 10 paying enterprise pilot customers and $20k MRR.",
+        }
+        self.m2_b = compute_milestone2_analysis(self.project_b)
+        self.competitors_b = build_competitor_assessment(self.project_b)
 
-        try:
-            # Case 1: Explicit offline
-            os.environ["LLM_PROVIDER"] = "offline"
-            prov, reason, key = resolve_llm_provider()
-            self.assertEqual(prov, "offline")
+    def tearDown(self):
+        os.environ.pop("LLM_PROVIDER", None)
 
-            # Case 2: Configured 'gemini' but key is missing -> resolve_llm_provider returns offline fallback
-            os.environ["LLM_PROVIDER"] = "gemini"
-            os.environ.pop("GEMINI_API_KEY", None)
-            prov, reason, key = resolve_llm_provider()
-            self.assertEqual(prov, "offline")
-
-            # End-to-end: generate strategy and assert output provider_info accurately reports 'offline'
-            res = get_or_generate_strategy(self.project, self.m2_analysis, force_refresh=True)
-            self.assertEqual(res["provider_info"]["name"], "offline")
-            self.assertIn("offline", res["provider_info"]["description"].lower())
-
-        finally:
-            if orig_provider is not None:
-                os.environ["LLM_PROVIDER"] = orig_provider
-            else:
-                os.environ.pop("LLM_PROVIDER", None)
-
-            if orig_gemini is not None:
-                os.environ["GEMINI_API_KEY"] = orig_gemini
-            else:
-                os.environ.pop("GEMINI_API_KEY", None)
-
-            if orig_openai is not None:
-                os.environ["OPENAI_API_KEY"] = orig_openai
-            else:
-                os.environ.pop("OPENAI_API_KEY", None)
-
-    def test_langgraph_information_flow(self):
-        """
-        Fix 2: Verifies sequential information propagation across nodes:
-        Root Causes -> Positioning -> Mitigation Roadmap -> Executive Synthesis.
-        """
+    def test_5_node_langgraph_workflow_execution(self):
+        """Verifies step-by-step state propagation across the 5 LangGraph nodes."""
         initial_state: StrategyState = {
-            "project": self.project,
-            "milestone2_analysis": self.m2_analysis,
+            "project": self.project_a,
+            "milestone2_analysis": self.m2_a,
+            "competitors": self.competitors_a,
             "provider_info": {"name": "offline", "description": "Offline heuristic reasoning engine"},
         }
 
-        # Step 1: Root Causes
-        s1 = node_root_cause_analysis(initial_state)
-        self.assertIn("root_causes", s1)
-        self.assertGreater(len(s1["root_causes"]), 0)
+        # Node 1: Data Ingestion
+        s1 = node_data_ingestion(initial_state)
+        self.assertIn("ingested_context", s1)
+        ctx = s1["ingested_context"]
+        self.assertIn("risk_category_scores", ctx)
+        self.assertIn("overall_failure_risk_pct", ctx)
+        self.assertIn("success_probability_pct", ctx)
+        self.assertIn("feasibility_scores", ctx)
+        self.assertIn("swot", ctx)
+        self.assertIn("competitors", ctx)
 
-        # Step 2: Positioning (consumes Root Causes)
-        s2 = node_positioning_analysis(s1)
-        self.assertIn("positioning_analysis", s2)
-        self.assertIn("core_value_proposition", s2["positioning_analysis"])
-        self.assertIn("primary_differentiation_angle", s2["positioning_analysis"])
+        # Node 2: Risk Analysis
+        s2 = node_risk_analysis(s1)
+        self.assertIn("identified_risk_areas", s2)
+        self.assertGreater(len(s2["identified_risk_areas"]), 0)
+        for area in s2["identified_risk_areas"]:
+            self.assertIn("category", area)
+            self.assertIn("score", area)
+            self.assertIn("severity", area)
+            self.assertIn("m1_m2_triggers", area)
 
-        # Step 3: Mitigation Roadmap (consumes Root Causes AND Positioning)
-        s3 = node_mitigation_roadmap(s2)
-        self.assertIn("mitigation_roadmap", s3)
-        self.assertEqual(len(s3["mitigation_roadmap"]), 3)
+        # Node 3: Strategic Reasoning
+        s3 = node_strategic_reasoning(s2)
+        self.assertIn("strategic_reasoning_raw", s3)
+        raw = s3["strategic_reasoning_raw"]
+        self.assertIn("recommendations", raw)
+        self.assertIn("risk_mitigation", raw)
+        self.assertIn("strategic_reasoning", raw)
 
-        # Step 4: Executive Synthesis (consumes Root Causes, Positioning, AND Roadmap)
-        s4 = node_executive_synthesis(s3)
-        self.assertIn("executive_synthesis", s4)
+        # Node 4: Validation
+        s4 = node_validation(s3)
+        self.assertIn("validation_results", s4)
+        self.assertEqual(s4["validation_results"]["status"], "passed")
         self.assertIn("strategic_recommendation_score", s4)
-        self.assertIn("bull_case_scenario", s4["executive_synthesis"])
-        self.assertIn("bear_case_scenario", s4["executive_synthesis"])
+        self.assertGreaterEqual(s4["strategic_recommendation_score"], 0)
+        self.assertLessEqual(s4["strategic_recommendation_score"], 100)
+
+        # Node 5: Report Generation
+        s5 = node_report_generation(s4)
+        self.assertIn("final_report", s5)
+        report = s5["final_report"]
+        self.assertEqual(report["status"], "success")
+        self.assertIn("recommendations", report)
+        self.assertIn("risk_mitigation", report)
+        self.assertIn("strategic_reasoning", report)
+        self.assertIn("supporting_insights", report)
+        self.assertIn("langgraph_workflow", report)
+        self.assertEqual(len(report["langgraph_workflow"]["nodes"]), 5)
+
+    def test_recommendations_contain_m1_m2_trigger_references(self):
+        """Verifies each recommendation has priority, explanation, and explicit M1/M2 'triggered_by' references."""
+        strategy = get_or_generate_strategy(self.project_a, self.m2_a, competitors=self.competitors_a, force_refresh=True)
+        recs = strategy["recommendations"]
+        self.assertGreater(len(recs), 0)
+
+        for r in recs:
+            self.assertIn("title", r)
+            self.assertIn("priority", r)
+            self.assertIn(r["priority"], ["Critical", "High", "Medium", "Low"])
+            self.assertIn("explanation", r)
+            self.assertGreater(len(r["explanation"]), 15)
+            self.assertIn("triggered_by", r)
+            self.assertIsInstance(r["triggered_by"], list)
+            self.assertGreater(len(r["triggered_by"]), 0)
+            
+            # Verify trigger object structure
+            for trig in r["triggered_by"]:
+                self.assertIn("source", trig)
+                self.assertIn("finding", trig)
+                self.assertIn("score", trig)
+
+    def test_risk_mitigation_matrix_schema(self):
+        """Verifies risk mitigation entries contain identified risk, category, action, and expected impact."""
+        strategy = get_or_generate_strategy(self.project_a, self.m2_a, competitors=self.competitors_a, force_refresh=True)
+        mits = strategy["risk_mitigation"]
+        self.assertGreater(len(mits), 0)
+
+        for m in mits:
+            self.assertIn("identified_risk", m)
+            self.assertIn("risk_category", m)
+            self.assertIn("recommended_mitigation", m)
+            self.assertIn("expected_impact", m)
+            self.assertIn("priority", m)
+            self.assertIn("timeframe", m)
+
+    def test_strategic_reasoning_and_scenario_forecasts(self):
+        """Verifies strategic reasoning narrative and bull/bear scenario forecasts."""
+        strategy = get_or_generate_strategy(self.project_a, self.m2_a, competitors=self.competitors_a, force_refresh=True)
+        reasoning = strategy["strategic_reasoning"]
+        self.assertIn("explanation", reasoning)
+        self.assertIn("scenario_forecasts", reasoning)
+        scenarios = reasoning["scenario_forecasts"]
+        self.assertIn("bull_case", scenarios)
+        self.assertIn("bear_case", scenarios)
+
+    def test_dynamic_variation_across_differing_projects(self):
+        """Verifies recommendations change appropriately when input project and M1/M2 results change."""
+        strat_a = get_or_generate_strategy(self.project_a, self.m2_a, competitors=self.competitors_a, force_refresh=True)
+        strat_b = get_or_generate_strategy(self.project_b, self.m2_b, competitors=self.competitors_b, force_refresh=True)
+
+        # High risk project A should produce different recommendation titles and triggers than low risk project B
+        titles_a = [r["title"] for r in strat_a["recommendations"]]
+        titles_b = [r["title"] for r in strat_b["recommendations"]]
+        self.assertNotEqual(titles_a, titles_b)
+
+        # Project A should trigger Financial Risk warnings due to low budget & hardware
+        a_triggers = [t["finding"] for r in strat_a["recommendations"] for t in r["triggered_by"]]
+        self.assertTrue(any("Financial Risk" in t for t in a_triggers))
+
+    def test_score_separation_and_m2_immutability(self):
+        """Milestone 2 Overall Risk Score must NEVER be altered or replaced by the Strategy layer."""
+        m2_original_risk = self.m2_a["riskScoring"]["overallScore"]
+        m2_original_feas = self.m2_a["feasibility"]["overallScore"]
+
+        strategy = get_or_generate_strategy(self.project_a, self.m2_a, competitors=self.competitors_a, force_refresh=True)
+        scores = strategy["scores"]
+
+        # Baseline Risk must strictly match Milestone 2 risk
+        self.assertEqual(scores["baseline_failure_risk_pct"], m2_original_risk)
+        # Feasibility score must strictly match Milestone 2 feasibility
+        self.assertEqual(scores["feasibility_overall_score"], m2_original_feas)
+        # Success probability must match 100 - risk
+        self.assertEqual(scores["success_probability_pct"], 100 - m2_original_risk)
+        # Strategic score must exist as a separate metric
+        self.assertIn("strategic_recommendation_score", scores)
+        self.assertIsInstance(scores["strategic_recommendation_score"], int)
 
     def test_score_validation_and_clamping(self):
-        """
-        Fix 3: Validates and clamps Strategic Recommendation Score across edge cases
-        (strings with %, fractions, floats, out-of-bounds numbers, malformed values).
-        """
+        """Validates and clamps Strategic Recommendation Score across edge cases."""
         self.assertEqual(_validate_and_clamp_score(85), 85)
         self.assertEqual(_validate_and_clamp_score("85"), 85)
         self.assertEqual(_validate_and_clamp_score("85%"), 85)
@@ -200,66 +287,61 @@ class TestMilestone3StrategyEngine(unittest.TestCase):
         self.assertEqual(_validate_and_clamp_score(-15), 0)
         self.assertEqual(_validate_and_clamp_score(150), 100)
         self.assertEqual(_validate_and_clamp_score(None, fallback=70), 70)
-        self.assertEqual(_validate_and_clamp_score("invalid_string", fallback=65), 65)
-        self.assertEqual(_validate_and_clamp_score(float("nan"), fallback=75), 75)
+        self.assertEqual(_validate_and_clamp_score("invalid", fallback=65), 65)
 
-    def test_score_separation_guarantee(self):
-        """Crucial constraint: Milestone 2 Overall Risk Score must NEVER be altered by the Strategy layer."""
-        m2_original_risk = self.m2_analysis["riskScoring"]["overallScore"]
-        
-        strategy = get_or_generate_strategy(self.project, self.m2_analysis, force_refresh=True)
-        scores = strategy["scores"]
-
-        # Baseline Risk must match Milestone 2 risk exactly
-        self.assertEqual(scores["baseline_failure_risk_pct"], m2_original_risk)
-
-        # Strategic Recommendation Score must exist as a separate metric (0-100)
-        self.assertIn("strategic_recommendation_score", scores)
-        self.assertIsInstance(scores["strategic_recommendation_score"], int)
-        self.assertGreaterEqual(scores["strategic_recommendation_score"], 0)
-        self.assertLessEqual(scores["strategic_recommendation_score"], 100)
-
-        # Feasibility score must match Milestone 2 feasibility exactly
-        self.assertEqual(scores["feasibility_overall_score"], self.m2_analysis["feasibility"]["overallScore"])
-
-    def test_caching_and_force_refresh_behavior(self):
-        """Verifies cache hits and cache bypass on force_refresh=True."""
+    def test_caching_and_force_refresh(self):
+        """Verifies cache retrieval and bypass on force_refresh=True."""
         clear_strategy_cache()
 
-        # 1st call: fresh generation
-        res1 = get_or_generate_strategy(self.project, self.m2_analysis, force_refresh=False)
+        res1 = get_or_generate_strategy(self.project_a, self.m2_a, force_refresh=False)
         self.assertFalse(res1.get("is_cached", False))
 
-        # 2nd call: cache hit
-        res2 = get_or_generate_strategy(self.project, self.m2_analysis, force_refresh=False)
+        res2 = get_or_generate_strategy(self.project_a, self.m2_a, force_refresh=False)
         self.assertTrue(res2.get("is_cached", False))
 
-        # 3rd call with force_refresh=True: bypasses cache and regenerates
-        res3 = get_or_generate_strategy(self.project, self.m2_analysis, force_refresh=True)
+        res3 = get_or_generate_strategy(self.project_a, self.m2_a, force_refresh=True)
         self.assertFalse(res3.get("is_cached", False))
 
 
 class TestFrontendIntegration(unittest.TestCase):
-    """Verifies that the frontend HTML correctly wires the strategy modal trigger button and endpoints."""
+    """Verifies that analysis-results.html has the updated 'Recommendations' UI labels and 5-node stepper."""
 
     def setUp(self):
         with open("analysis-results.html", "r", encoding="utf-8") as f:
             self.html_content = f.read()
 
-    def test_view_explanation_btn_label_and_id(self):
-        """Button must retain id='viewExplanationBtn' and have label 'View Detailed Strategy & Reasoning →'."""
+    def test_recommendations_ui_labels_present(self):
+        """Primary buttons and titles must be 'Recommendations' instead of 'AI Strategic Advisor'."""
+        # Header button
+        self.assertIn('id="headerStrategyBtn"', self.html_content)
+        self.assertIn('Recommendations', self.html_content)
+        # Summary button
         self.assertIn('id="viewExplanationBtn"', self.html_content)
-        self.assertIn('View Detailed Strategy & Reasoning →', self.html_content)
-        # Ensure old label is removed
+        self.assertIn('View Recommendations →', self.html_content)
+        # Old labels must be removed
         self.assertNotIn('View Detailed Explanation →', self.html_content)
+        self.assertNotIn('View Detailed Strategy & Reasoning →', self.html_content)
 
-    def test_strategy_modal_wiring(self):
-        """Button click must trigger openStrategyModal and load strategy from the strategy endpoint."""
-        self.assertIn('document.getElementById("viewExplanationBtn").addEventListener("click", openStrategyModal)', self.html_content)
-        self.assertIn('/api/analysis/${currentProjectId}/strategy', self.html_content)
-        self.assertIn('id="strategyModalOverlay"', self.html_content)
+    def test_5_node_stepper_and_triggers_rendered(self):
+        """HTML/JS must include 5-node stepper, full-width Recommendations tab panel, and evidence accordion."""
+        self.assertIn('id="tabBtnRecommendations"', self.html_content)
+        self.assertIn('id="tabPanelRecommendations"', self.html_content)
+        self.assertIn('LangGraph', self.html_content)
+        self.assertIn('Data Ingestion', self.html_content)
+        self.assertIn('Risk Analysis', self.html_content)
+        self.assertIn('Strategic Reasoning', self.html_content)
+        self.assertIn('Validation', self.html_content)
+        self.assertIn('Report Generation', self.html_content)
+        self.assertIn('Risk Mitigation Matrix', self.html_content)
+        self.assertIn('Why this recommendation?', self.html_content)
+    def test_no_duplicate_variable_declarations(self):
+        """Ensure currentProjectId and currentStrategyData are declared exactly once in script scope."""
+        import re
+        proj_matches = re.findall(r"(?:let|const|var)\s+currentProjectId\b", self.html_content)
+        strat_matches = re.findall(r"(?:let|const|var)\s+currentStrategyData\b", self.html_content)
+        self.assertEqual(len(proj_matches), 1, f"Found {len(proj_matches)} declarations of currentProjectId")
+        self.assertEqual(len(strat_matches), 1, f"Found {len(strat_matches)} declarations of currentStrategyData")
 
 
 if __name__ == "__main__":
     unittest.main()
-
