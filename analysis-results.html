@@ -1001,28 +1001,114 @@
   .strat-moat-content { font-size: 12.5px; color: #fff; font-weight: 500; line-height: 1.45; }
   .strat-barriers-list { padding-left: 16px; margin-top: 6px; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
 
-  .strat-spinner {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border: 2px solid rgba(139,92,246,0.25);
-    border-radius: 50%;
-    border-top-color: var(--accent);
-    animation: stratSpin 0.7s linear infinite;
-  }
+  /* --- Apple-Style Fluid Recommendations Loading Animation --- */
   .strat-loading-wrap {
-    padding: 60px 20px;
+    padding: 72px 24px;
     text-align: center;
     color: var(--text-muted);
   }
   .strat-loading-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid rgba(139,92,246,0.2);
+    position: relative;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .strat-loading-aura {
+    position: absolute;
+    inset: 0;
     border-radius: 50%;
-    border-top-color: var(--accent);
-    animation: stratSpin 0.7s linear infinite;
-    margin: 0 auto 16px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.28) 0%, rgba(139, 92, 246, 0.08) 55%, transparent 72%);
+    border: 1px solid rgba(167, 139, 250, 0.28);
+    box-shadow: 0 0 24px rgba(139, 92, 246, 0.2), inset 0 0 12px rgba(167, 139, 250, 0.15);
+    animation: appleAuraPulse 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    will-change: transform, opacity;
+  }
+  .strat-loading-glyph {
+    position: relative;
+    z-index: 1;
+    font-size: 26px;
+    line-height: 1;
+    color: #c4b5fd;
+    text-shadow: 0 0 14px rgba(167, 139, 250, 0.7), 0 0 28px rgba(139, 92, 246, 0.4);
+    animation: appleGlyphBreathe 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    will-change: transform, opacity;
+    user-select: none;
+  }
+  .strat-loading-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    letter-spacing: -0.1px;
+    animation: appleTextGlow 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    will-change: opacity;
+  }
+  .strat-spinner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    font-size: 11px;
+    line-height: 1;
+    color: var(--accent-hover);
+    text-shadow: 0 0 8px rgba(167, 139, 250, 0.6);
+    animation: appleMiniBreathe 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    will-change: transform, opacity;
+    vertical-align: middle;
+  }
+
+  @keyframes appleGlyphBreathe {
+    0%, 100% {
+      transform: scale(0.92) rotate(-4deg);
+      opacity: 0.75;
+    }
+    50% {
+      transform: scale(1.12) rotate(4deg);
+      opacity: 1;
+    }
+  }
+
+  @keyframes appleAuraPulse {
+    0%, 100% {
+      transform: scale(0.88);
+      opacity: 0.45;
+      border-color: rgba(167, 139, 250, 0.2);
+    }
+    50% {
+      transform: scale(1.14);
+      opacity: 0.9;
+      border-color: rgba(167, 139, 250, 0.5);
+    }
+  }
+
+  @keyframes appleTextGlow {
+    0%, 100% { opacity: 0.65; }
+    50% { opacity: 0.95; }
+  }
+
+  @keyframes appleMiniBreathe {
+    0%, 100% {
+      transform: scale(0.85);
+      opacity: 0.7;
+    }
+    50% {
+      transform: scale(1.15);
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .strat-loading-aura,
+    .strat-loading-glyph,
+    .strat-loading-text,
+    .strat-spinner {
+      animation: none !important;
+      transform: none !important;
+      opacity: 1 !important;
+    }
   }
 
   /* --- Footer --- */
@@ -1039,8 +1125,6 @@
     padding: 18px;
     border-top: 1px solid var(--border-subtle);
   }
-
-  @keyframes stratSpin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -1267,7 +1351,7 @@
           <span class="strat-badge provider" id="tabProviderBadge">Loading provider...</span>
           <span class="strat-badge" id="tabTimeBadge" style="display:none;"></span>
           <button class="strat-btn-regen" id="tabRegenBtn" title="Re-run LangGraph recommendations workflow">
-            <span id="tabRegenSpinner" style="display:none;" class="strat-spinner"></span>
+            <span id="tabRegenSpinner" style="display:none;" class="strat-spinner" aria-hidden="true">✦</span>
             <span id="tabRegenLabel">↻ Regenerate</span>
           </button>
         </div>
@@ -1275,8 +1359,11 @@
     </div>
 
     <div class="strat-loading-wrap" id="tabLoadingWrap" style="display:none;">
-      <div class="strat-loading-spinner"></div>
-      <p>Orchestrating 5-node LangGraph recommendation workflow...</p>
+      <div class="strat-loading-spinner" aria-hidden="true">
+        <div class="strat-loading-aura"></div>
+        <div class="strat-loading-glyph">✦</div>
+      </div>
+      <p class="strat-loading-text">Orchestrating 5-node LangGraph recommendation workflow...</p>
     </div>
 
     <div id="tabContentWrap" style="display:flex; flex-direction:column; gap:20px;">
@@ -1706,7 +1793,16 @@ async function fetchStrategy(forceRefresh = false) {
     if (regenSpinner) regenSpinner.style.display = "inline-block";
     if (regenLabel) regenLabel.textContent = "Synthesizing...";
   } else {
-    if (loadingWrap) loadingWrap.style.display = "block";
+    if (loadingWrap) {
+      loadingWrap.innerHTML = `
+        <div class="strat-loading-spinner" aria-hidden="true">
+          <div class="strat-loading-aura"></div>
+          <div class="strat-loading-glyph">✦</div>
+        </div>
+        <p class="strat-loading-text">Orchestrating 5-node LangGraph recommendation workflow...</p>
+      `;
+      loadingWrap.style.display = "block";
+    }
     if (contentWrap) contentWrap.style.display = "none";
   }
 
