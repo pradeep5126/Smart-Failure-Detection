@@ -1,5 +1,6 @@
 import os
 import re
+import time
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
@@ -11,6 +12,35 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 from strategy_engine import get_or_generate_strategy
+
+# In-memory per-project rate limiter for strategy regeneration
+REGENERATION_RATE_LIMIT_WINDOW_SECONDS = 600  # 10 minutes rolling window
+REGENERATION_RATE_LIMIT_MAX_REQUESTS = 3
+_regeneration_timestamps: dict[int, list[float]] = {}
+
+
+def clear_regeneration_rate_limits():
+    """Clear all in-memory regeneration rate limit timestamps."""
+    _regeneration_timestamps.clear()
+
+
+def check_and_record_regeneration_rate_limit(project_id: int) -> None:
+    """
+    Enforces a maximum of 3 regeneration requests per project within a rolling 10-minute window.
+    Evicts timestamps older than 10 minutes before evaluating the limit.
+    Raises HTTPException(429) if the limit is exceeded.
+    """
+    now = time.time()
+    cutoff = now - REGENERATION_RATE_LIMIT_WINDOW_SECONDS
+    timestamps = [t for t in _regeneration_timestamps.get(project_id, []) if t > cutoff]
+    if len(timestamps) >= REGENERATION_RATE_LIMIT_MAX_REQUESTS:
+        _regeneration_timestamps[project_id] = timestamps
+        raise HTTPException(
+            status_code=429,
+            detail="Regeneration limit reached. Please try again later.",
+        )
+    timestamps.append(now)
+    _regeneration_timestamps[project_id] = timestamps
 
 app = FastAPI(title="Project Submission API")
 if os.path.exists("static"):
@@ -866,6 +896,8 @@ def regenerate_project_strategy(project_id: int):
 
     if project is None:
         raise HTTPException(status_code=404, detail=f"No project found with id {project_id}")
+
+    check_and_record_regeneration_rate_limit(project_id)
 
     milestone2 = compute_milestone2_analysis(project)
     competitors = build_competitor_assessment(project)

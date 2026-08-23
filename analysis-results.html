@@ -1779,6 +1779,38 @@ function renderAll(data) {
    MILESTONE 3: RECOMMENDATIONS FULL ANALYSIS VIEW & TAB LOGIC
 ============================================================================ */
 
+let isRegenerating = false;
+let regenCooldownTimer = null;
+let regenCooldownSeconds = 0;
+
+function startRegenCooldown(durationSeconds = 60) {
+  const regenBtn = document.getElementById("tabRegenBtn");
+  const regenLabel = document.getElementById("tabRegenLabel");
+  const regenSpinner = document.getElementById("tabRegenSpinner");
+
+  if (regenCooldownTimer) {
+    clearInterval(regenCooldownTimer);
+    regenCooldownTimer = null;
+  }
+
+  regenCooldownSeconds = durationSeconds;
+  if (regenBtn) regenBtn.disabled = true;
+  if (regenSpinner) regenSpinner.style.display = "none";
+  if (regenLabel) regenLabel.textContent = `Regenerate (${regenCooldownSeconds}s)`;
+
+  regenCooldownTimer = setInterval(() => {
+    regenCooldownSeconds--;
+    if (regenCooldownSeconds <= 0) {
+      clearInterval(regenCooldownTimer);
+      regenCooldownTimer = null;
+      if (regenBtn) regenBtn.disabled = false;
+      if (regenLabel) regenLabel.textContent = "↻ Regenerate";
+    } else {
+      if (regenLabel) regenLabel.textContent = `Regenerate (${regenCooldownSeconds}s)`;
+    }
+  }, 1000);
+}
+
 async function fetchStrategy(forceRefresh = false) {
   const loadingWrap = document.getElementById("tabLoadingWrap");
   const contentWrap = document.getElementById("tabContentWrap");
@@ -1788,7 +1820,10 @@ async function fetchStrategy(forceRefresh = false) {
 
   if (!currentProjectId) return;
 
+  // Prevent multiple rapid clicks if already regenerating or if in cooldown
   if (forceRefresh) {
+    if (isRegenerating || regenCooldownTimer) return;
+    isRegenerating = true;
     if (regenBtn) regenBtn.disabled = true;
     if (regenSpinner) regenSpinner.style.display = "inline-block";
     if (regenLabel) regenLabel.textContent = "Synthesizing...";
@@ -1806,6 +1841,8 @@ async function fetchStrategy(forceRefresh = false) {
     if (contentWrap) contentWrap.style.display = "none";
   }
 
+  let requestSucceeded = false;
+
   try {
     const url = forceRefresh
       ? `${API_BASE}/api/analysis/${currentProjectId}/strategy/regenerate`
@@ -1822,6 +1859,7 @@ async function fetchStrategy(forceRefresh = false) {
     renderRecommendationsView(data);
     if (loadingWrap) loadingWrap.style.display = "none";
     if (contentWrap) contentWrap.style.display = "flex";
+    requestSucceeded = true;
   } catch (err) {
     if (loadingWrap) {
       loadingWrap.innerHTML = `
@@ -1833,9 +1871,14 @@ async function fetchStrategy(forceRefresh = false) {
     }
     if (contentWrap) contentWrap.style.display = "none";
   } finally {
-    if (regenBtn) regenBtn.disabled = false;
-    if (regenSpinner) regenSpinner.style.display = "none";
-    if (regenLabel) regenLabel.textContent = "↻ Regenerate";
+    isRegenerating = false;
+    if (forceRefresh && requestSucceeded) {
+      startRegenCooldown(60);
+    } else if (!regenCooldownTimer) {
+      if (regenBtn) regenBtn.disabled = false;
+      if (regenSpinner) regenSpinner.style.display = "none";
+      if (regenLabel) regenLabel.textContent = "↻ Regenerate";
+    }
   }
 }
 

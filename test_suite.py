@@ -18,10 +18,14 @@ Verifies:
 """
 
 import os
+import time
 import unittest
 from decimal import Decimal
+from unittest.mock import MagicMock, patch
 
-# Import Milestone 2 engine functions from main
+from fastapi.testclient import TestClient
+
+# Import Milestone 2 engine functions and rate limiting from main
 from main import (
     _financial_risk,
     _market_risk,
@@ -30,6 +34,12 @@ from main import (
     _operational_risk,
     compute_milestone2_analysis,
     build_competitor_assessment,
+    app,
+    clear_regeneration_rate_limits,
+    check_and_record_regeneration_rate_limit,
+    _regeneration_timestamps,
+    REGENERATION_RATE_LIMIT_WINDOW_SECONDS,
+    REGENERATION_RATE_LIMIT_MAX_REQUESTS,
 )
 
 # Import Milestone 3 Strategy Engine functions
@@ -341,6 +351,147 @@ class TestFrontendIntegration(unittest.TestCase):
         strat_matches = re.findall(r"(?:let|const|var)\s+currentStrategyData\b", self.html_content)
         self.assertEqual(len(proj_matches), 1, f"Found {len(proj_matches)} declarations of currentProjectId")
         self.assertEqual(len(strat_matches), 1, f"Found {len(strat_matches)} declarations of currentStrategyData")
+
+    def test_frontend_cooldown_and_rate_limit_handling_present(self):
+        """analysis-results.html must implement 60-second cooldown timer, countdown formatting, and error handling."""
+        self.assertIn("startRegenCooldown", self.html_content)
+        self.assertIn("Regenerate (${regenCooldownSeconds}s)", self.html_content)
+        self.assertIn("↻ Regenerate", self.html_content)
+        self.assertIn("isRegenerating", self.html_content)
+        self.assertIn("regenCooldownTimer", self.html_content)
+
+
+class TestRegenerationRateLimitingAndCooldown(unittest.TestCase):
+    """
+    Verifies rate limiting and cooldown protections on Milestone 3 Recommendations Regenerate:
+    - 1st, 2nd, and 3rd regeneration requests succeed.
+    - 4th request within rolling 10-minute window returns HTTP 429 Too Many Requests.
+    - JSON error contains clear message.
+    - Distinct project IDs have independent counters.
+    - Expired timestamps (>10 mins) are pruned.
+    - Normal GET /api/analysis/{project_id}/strategy is unaffected.
+    """
+
+    def setUp(self):
+        clear_regeneration_rate_limits()
+        clear_strategy_cache()
+        os.environ["LLM_PROVIDER"] = "offline"
+        self.client = TestClient(app)
+
+        self.sample_project_1 = {
+            "project_id": 301,
+            "project_name": "AgriSense AI",
+            "industry_sector": "Agritech",
+            "business_model": "Hardware + Subscription",
+            "target_market": "Commercial farm operators across South Asia",
+            "budget": Decimal("80000"),
+            "description": "IoT soil sensors and hardware nodes requiring manufacturing capital. No customers yet.",
+        }
+
+        self.sample_project_2 = {
+            "project_id": 302,
+            "project_name": "DevPulse Enterprise",
+            "industry_sector": "B2B SaaS",
+            "business_model": "SaaS",
+            "target_market": "Enterprise security architects and engineering directors",
+            "budget": Decimal("5000000"),
+            "description": "Cloud security telemetry platform with 10 paying enterprise pilot customers.",
+        }
+
+    def tearDown(self):
+        clear_regeneration_rate_limits()
+        clear_strategy_cache()
+        os.environ.pop("LLM_PROVIDER", None)
+
+    def _mock_conn_for_project(self, project_dict):
+        mock_conn = MagicMock()
+        mock_cur = MagicMock()
+        mock_cur.fetchone.return_value = project_dict
+        mock_conn.cursor.return_value.__enter__.return_value = mock_cur
+        return mock_conn
+
+    def test_first_regeneration_succeeds(self):
+        """First regeneration request for a project must succeed with HTTP 200."""
+        with patch("main.get_connection", return_value=self._mock_conn_for_project(self.sample_project_1)):
+            resp = self.client.post("/api/analysis/301/strategy/regenerate")
+            self.assertEqual(resp.status_code, 200)
+            data = resp.json()
+            self.assertEqual(data.get("status"), "success")
+            self.assertIn("recommendations", data)
+
+    def test_up_to_3_regenerations_allowed_within_10_minutes(self):
+        """Up to 3 regeneration requests within 10 minutes are permitted."""
+        with patch("main.get_connection", return_value=self._mock_conn_for_project(self.sample_project_1)):
+            for i in range(1, 4):
+                resp = self.client.post("/api/analysis/301/strategy/regenerate")
+                self.assertEqual(
+                    resp.status_code,
+                    200,
+                    f"Regeneration attempt {i} failed unexpectedly with status {resp.status_code}",
+                )
+
+    def test_4th_regeneration_returns_429_too_many_requests(self):
+        """4th regeneration attempt within the same 10-minute window must return HTTP 429."""
+        with patch("main.get_connection", return_value=self._mock_conn_for_project(self.sample_project_1)):
+            # Attempts 1, 2, 3 should succeed
+            for _ in range(3):
+                resp = self.client.post("/api/analysis/301/strategy/regenerate")
+                self.assertEqual(resp.status_code, 200)
+
+            # Attempt 4 should fail with 429
+            resp4 = self.client.post("/api/analysis/301/strategy/regenerate")
+            self.assertEqual(resp4.status_code, 429)
+            err = resp4.json()
+            self.assertIn("detail", err)
+            self.assertIn("Regeneration limit reached", err["detail"])
+
+    def test_different_projects_have_independent_limits(self):
+        """Rate limiting on project 301 must not restrict regenerations for project 302."""
+        # Exhaust 3 attempts on project 301
+        with patch("main.get_connection", return_value=self._mock_conn_for_project(self.sample_project_1)):
+            for _ in range(3):
+                resp = self.client.post("/api/analysis/301/strategy/regenerate")
+                self.assertEqual(resp.status_code, 200)
+
+            # 4th attempt on project 301 is blocked
+            resp_block_301 = self.client.post("/api/analysis/301/strategy/regenerate")
+            self.assertEqual(resp_block_301.status_code, 429)
+
+        # Project 302 can still perform regenerations
+        with patch("main.get_connection", return_value=self._mock_conn_for_project(self.sample_project_2)):
+            resp_302 = self.client.post("/api/analysis/302/strategy/regenerate")
+            self.assertEqual(resp_302.status_code, 200)
+
+    def test_expired_timestamps_older_than_10_minutes_are_removed(self):
+        """Timestamps older than 10 minutes (600s) must be evicted and not count toward the limit."""
+        now = time.time()
+        # Seed 3 expired timestamps (older than 10 minutes ago)
+        _regeneration_timestamps[301] = [now - 700, now - 650, now - 610]
+
+        with patch("main.get_connection", return_value=self._mock_conn_for_project(self.sample_project_1)):
+            # Since prior 3 timestamps have expired, this request should succeed
+            resp = self.client.post("/api/analysis/301/strategy/regenerate")
+            self.assertEqual(resp.status_code, 200)
+
+            # Verify that only the new timestamp remains
+            remaining = _regeneration_timestamps[301]
+            self.assertEqual(len(remaining), 1)
+            self.assertGreaterEqual(remaining[0], now - 5)
+
+    def test_normal_get_strategy_endpoint_remains_unaffected(self):
+        """Normal GET /api/analysis/{project_id}/strategy must not be rate-limited even after 429 on regenerate."""
+        with patch("main.get_connection", return_value=self._mock_conn_for_project(self.sample_project_1)):
+            # Exhaust rate limit on regenerate
+            for _ in range(3):
+                self.client.post("/api/analysis/301/strategy/regenerate")
+            resp_429 = self.client.post("/api/analysis/301/strategy/regenerate")
+            self.assertEqual(resp_429.status_code, 429)
+
+            # Normal GET strategy requests continue to succeed
+            for _ in range(5):
+                get_resp = self.client.get("/api/analysis/301/strategy")
+                self.assertEqual(get_resp.status_code, 200)
+                self.assertEqual(get_resp.json().get("status"), "success")
 
 
 if __name__ == "__main__":
