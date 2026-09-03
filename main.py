@@ -8,10 +8,11 @@ import psycopg2
 import psycopg2.extras
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 from strategy_engine import get_or_generate_strategy
+from report_generator import generate_report
 
 # In-memory per-project rate limiter for strategy regeneration
 REGENERATION_RATE_LIMIT_WINDOW_SECONDS = 600  # 10 minutes rolling window
@@ -150,6 +151,116 @@ def list_projects():
 def health():
     return {"status": "ok", "time": datetime.utcnow().isoformat()}
 
+
+@app.get("/api/dashboard/summary")
+def dashboard_summary():
+    """Aggregate dashboard stats across all projects using existing M2 analysis pipeline."""
+    conn = get_connection()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM projects ORDER BY created_at DESC")
+            projects = cur.fetchall()
+    finally:
+        conn.close()
+
+    if not projects:
+        return {
+            "totalProjects": 0,
+            "averageFailureRisk": 0,
+            "averageFeasibilityScore": 0,
+            "projectsNeedingAttention": 0,
+            "riskDistribution": {
+                "Low Risk": 0, "Moderate Risk": 0,
+                "High Risk": 0, "Critical Risk": 0,
+            },
+            "industryDistribution": {},
+            "recentProjects": [],
+        }
+
+    total_risk = 0
+    total_feas = 0
+    attention = 0
+    risk_dist = {"Low Risk": 0, "Moderate Risk": 0, "High Risk": 0, "Critical Risk": 0}
+    industry_dist: dict[str, int] = {}
+    recent: list[dict] = []
+
+    for proj in projects:
+        try:
+            m2 = compute_milestone2_analysis(proj)
+            r_score = m2["riskScoring"]["overallScore"]
+            f_score = m2["feasibility"]["overallScore"]
+            r_level = m2["riskScoring"]["riskLevel"]
+            f_level = m2["feasibility"]["level"]
+        except Exception:
+            r_score, f_score, r_level, f_level = 50, 50, "Moderate Risk", "Needs Attention"
+
+        total_risk += r_score
+        total_feas += f_score
+        if r_score >= 60:
+            attention += 1
+        if r_level in risk_dist:
+            risk_dist[r_level] += 1
+
+        ind = proj.get("industry_sector", "Other")
+        industry_dist[ind] = industry_dist.get(ind, 0) + 1
+
+        ca = proj.get("created_at")
+        ca_str = ca.isoformat() if hasattr(ca, "isoformat") else str(ca or "")
+
+        recent.append({
+            "project_id": proj["project_id"],
+            "project_name": proj["project_name"],
+            "industry_sector": proj["industry_sector"],
+            "business_model": proj.get("business_model", ""),
+            "budget": float(proj.get("budget", 0)),
+            "created_at": ca_str,
+            "failureRiskPct": r_score,
+            "riskLevel": r_level,
+            "feasibilityScore": f_score,
+            "feasibilityLevel": f_level,
+        })
+
+    n = len(projects)
+    return {
+        "totalProjects": n,
+        "averageFailureRisk": round(total_risk / n),
+        "averageFeasibilityScore": round(total_feas / n),
+        "projectsNeedingAttention": attention,
+        "riskDistribution": risk_dist,
+        "industryDistribution": industry_dist,
+        "recentProjects": recent,
+    }
+
+@app.get("/api/report/{project_id}", response_class=HTMLResponse)
+def get_report(project_id: int):
+    """Generate and return a comprehensive HTML assessment report."""
+    conn = get_connection()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM projects WHERE project_id = %s", (project_id,))
+            proj = cur.fetchone()
+    finally:
+        conn.close()
+
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    m2_analysis = compute_milestone2_analysis(proj)
+    mapped_analysis = {
+        "failure_risk_score": m2_analysis["riskScoring"]["overallScore"],
+        "feasibility_score": m2_analysis["feasibility"]["overallScore"],
+        "risk_breakdown": {item["name"]: item["score"] for item in m2_analysis["riskScoring"]["riskBreakdown"]},
+        "swot": m2_analysis["swot"],
+        "competitors": build_competitor_assessment(proj)
+    }
+
+    try:
+        strategy = get_or_generate_strategy(proj, m2_analysis, force_regenerate=False)
+    except Exception:
+        strategy = None
+
+    html = generate_report(proj, mapped_analysis, strategy)
+    return html
 
 
 import random
@@ -908,3 +1019,8 @@ def regenerate_project_strategy(project_id: int):
 @app.get("/analysis-results.html", include_in_schema=False)
 def analysis_results():
     return FileResponse("analysis-results.html")
+
+
+@app.get("/dashboard.html", include_in_schema=False)
+def dashboard_page():
+    return FileResponse("dashboard.html")

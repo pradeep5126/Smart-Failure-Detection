@@ -1136,6 +1136,7 @@
   </a>
   <div class="links">
     <a href="overview.html">Overview</a>
+    <a href="dashboard.html">Dashboard</a>
     <a href="index.html">Project Input</a>
     <a href="#" class="active">Analysis Results</a>
   </div>
@@ -1151,7 +1152,7 @@
       <button class="btn-primary" id="headerStrategyBtn" onclick="switchTab('recommendations')">
         <span>✦</span> Recommendations
       </button>
-      <button class="btn-secondary" onclick="window.print()">Export Brief</button>
+      <button class="btn-secondary" onclick="downloadReport()">Download Report</button>
     </div>
   </div>
 
@@ -2157,6 +2158,15 @@ Object.entries(tabButtons).forEach(([key, btn]) => {
 const tabRegenBtn = document.getElementById("tabRegenBtn");
 if (tabRegenBtn) {
   tabRegenBtn.addEventListener("click", () => fetchStrategy(true));
+}
+
+/* ===================== Download Report ===================== */
+function downloadReport() {
+  if (!currentProjectId) {
+    alert("Project ID is missing. Cannot generate report.");
+    return;
+  }
+  window.open('/api/report/' + currentProjectId, '_blank');
 }
 
 /* ===================== Bootstrap ===================== */

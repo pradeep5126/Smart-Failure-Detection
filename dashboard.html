@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Risk Analytics Dashboard — smart_failure_detection</title>
+  <meta name="description" content="Portfolio-level risk analytics dashboard for all analyzed startup ventures">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+  /* ====================================================================
+     Design Tokens — matches existing project design system
+  ==================================================================== */
+  :root {
+    --bg-base:        #09090b;
+    --bg-surface:     #101014;
+    --bg-card:        #141418;
+    --bg-card-subtle: #1a1a20;
+    --bg-glass:       rgba(12, 12, 16, 0.88);
+    --border-subtle:  rgba(255, 255, 255, 0.08);
+    --border-highlight: inset 0 1px 0 rgba(255,255,255,0.04);
+    --accent:         #8b5cf6;
+    --accent-dim:     rgba(139, 92, 246, 0.12);
+    --risk-danger:    #f43f5e;
+    --risk-warn:      #f59e0b;
+    --risk-success:   #10b981;
+    --text-primary:   #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-muted:     #71717a;
+    --font-ui:        'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono:      'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+    --radius-sm:      8px;
+    --radius-md:      12px;
+    --radius-lg:      16px;
+    --radius-pill:    9999px;
+  }
+
+  /* ====================================================================
+     Base Reset
+  ==================================================================== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-ui);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-image: radial-gradient(ellipse 70% 40% at 50% -10%, rgba(139,92,246,0.07), transparent 70%);
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  /* ====================================================================
+     Navigation — consistent with all project pages
+  ==================================================================== */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+  .brand-glyph {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(139,92,246,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #c4b5fd;
+    box-shadow: 0 0 12px rgba(139,92,246,0.18);
+  }
+  .links {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-surface);
+    padding: 4px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border-subtle);
+  }
+  .links a {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 16px;
+    border-radius: var(--radius-pill);
+    color: var(--text-secondary);
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .links a:hover { color: var(--text-primary); }
+  .links a.active {
+    background: var(--bg-card-subtle);
+    color: var(--text-primary);
+    box-shadow: var(--border-highlight), 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  /* ====================================================================
+     Main Layout
+  ==================================================================== */
+  main {
+    max-width: 1220px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* ====================================================================
+     Dashboard Header
+  ==================================================================== */
+  .dash-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .dash-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .dash-subtitle {
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .dash-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* ====================================================================
+     Buttons — consistent with analysis-results.html
+  ==================================================================== */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-ui);
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+    text-decoration: none;
+  }
+  .btn-primary:hover {
+    background: #7c3aed;
+    box-shadow: 0 0 16px rgba(139,92,246,0.35);
+  }
+  .btn-primary:active { transform: scale(0.97); }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-ui);
+    color: var(--text-secondary);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .btn-secondary:hover {
+    color: var(--text-primary);
+    border-color: rgba(255,255,255,0.15);
+    background: var(--bg-card-subtle);
+  }
+  .btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  /* ====================================================================
+     Stat Cards Grid
+  ==================================================================== */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 22px 20px;
+    box-shadow: var(--border-highlight), 0 2px 10px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    opacity: 0;
+    animation: fadeInUp 0.45s ease forwards;
+  }
+  .stat-card:nth-child(1) { animation-delay: 0s; }
+  .stat-card:nth-child(2) { animation-delay: 0.07s; }
+  .stat-card:nth-child(3) { animation-delay: 0.14s; }
+  .stat-card:nth-child(4) { animation-delay: 0.21s; }
+  .stat-card:hover {
+    border-color: rgba(255,255,255,0.12);
+    box-shadow: var(--border-highlight), 0 4px 16px rgba(0,0,0,0.4);
+  }
+  .stat-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+  }
+  .stat-number {
+    font-size: 36px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: #fff;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 2px;
+  }
+  .stat-ring-area {
+    position: relative;
+    width: 76px;
+    height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 4px 0;
+  }
+  .stat-ring-value {
+    position: absolute;
+    font-size: 17px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+  .stat-detail {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* Risk tags — reused across dashboard */
+  .risk-tag {
+    font-size: 10.5px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    display: inline-flex;
+    align-items: center;
+    letter-spacing: 0.2px;
+  }
+  .tag-danger  { background: rgba(244,63,94,0.14); color: #fb7185; border: 1px solid rgba(244,63,94,0.2); }
+  .tag-warn    { background: rgba(245,158,11,0.14); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+  .tag-success { background: rgba(16,185,129,0.14); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+  .tag-violet  { background: rgba(139,92,246,0.14); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.2); }
+
+  /* ====================================================================
+     Distribution Cards Grid
+  ==================================================================== */
+  .dist-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 28px;
+    opacity: 0;
+    animation: fadeInUp 0.45s ease 0.25s forwards;
+  }
+  .dist-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    box-shadow: var(--border-highlight), 0 2px 10px rgba(0,0,0,0.3);
+  }
+  .dist-card h2 {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .dist-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+  }
+  .dist-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .dist-bar-row:last-child { margin-bottom: 0; }
+  .dist-bar-label {
+    width: 85px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+  .dist-bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-surface);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .dist-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transform-origin: left;
+    animation: barGrow 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .dist-bar-count {
+    width: 28px;
+    text-align: right;
+    font-size: 12.5px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: #fff;
+  }
+
+  /* ====================================================================
+     Loading State
+  ==================================================================== */
+  .dash-loading {
+    padding: 100px 24px;
+    text-align: center;
+  }
+  .dash-loading-spinner {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dash-loading-aura {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(139,92,246,0.28) 0%, rgba(139,92,246,0.08) 55%, transparent 72%);
+    border: 1px solid rgba(167,139,250,0.28);
+    box-shadow: 0 0 24px rgba(139,92,246,0.2);
+    animation: auraPulse 3s cubic-bezier(0.4,0,0.2,1) infinite;
+  }
+  .dash-loading-glyph {
+    position: relative;
+    z-index: 1;
+    font-size: 22px;
+    color: #c4b5fd;
+    text-shadow: 0 0 14px rgba(167,139,250,0.7);
+    animation: glyphBreathe 3s cubic-bezier(0.4,0,0.2,1) infinite;
+    user-select: none;
+  }
+  .dash-loading-text {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  /* ====================================================================
+     Empty & Error States
+  ==================================================================== */
+  .dash-empty,
+  .dash-error {
+    padding: 100px 24px;
+    text-align: center;
+    display: none;
+  }
+  .dash-state-icon {
+    width: 68px;
+    height: 68px;
+    margin: 0 auto 18px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(139,92,246,0.25);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+  }
+  .dash-error .dash-state-icon {
+    background: rgba(244,63,94,0.1);
+    border-color: rgba(244,63,94,0.2);
+  }
+  .dash-empty h2, .dash-error h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .dash-empty p, .dash-error p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 22px;
+    line-height: 1.6;
+  }
+
+  /* ====================================================================
+     Footer
+  ==================================================================== */
+  footer {
+    text-align: center;
+    padding: 24px;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .disclaimer {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    max-width: 680px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+
+  /* ====================================================================
+     Animations
+  ==================================================================== */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes barGrow {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+  @keyframes auraPulse {
+    0%, 100% { transform: scale(0.88); opacity: 0.45; }
+    50%      { transform: scale(1.14); opacity: 0.9; }
+  }
+  @keyframes glyphBreathe {
+    0%, 100% { transform: scale(0.92) rotate(-4deg); opacity: 0.75; }
+    50%      { transform: scale(1.12) rotate(4deg); opacity: 1; }
+  }
+
+  /* ====================================================================
+     Responsive
+  ==================================================================== */
+  @media (max-width: 1024px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 768px) {
+    nav { padding: 12px 16px; flex-wrap: wrap; gap: 10px; }
+    .links { overflow-x: auto; }
+    .links a { white-space: nowrap; padding: 6px 12px; font-size: 12px; }
+    .dist-grid { grid-template-columns: 1fr; }
+    main { padding: 24px 16px 64px; }
+  }
+  @media (max-width: 640px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .dash-header { flex-direction: column; align-items: flex-start; }
+    .dash-actions { width: 100%; }
+    .btn-primary, .btn-secondary { flex: 1; justify-content: center; }
+    .stat-number { font-size: 30px; }
+  }
+
+  /* ====================================================================
+     Prefers Reduced Motion
+  ==================================================================== */
+  @media (prefers-reduced-motion: reduce) {
+    .stat-card,
+    .dist-grid {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    .dist-bar-fill {
+      animation: none !important;
+      transform: scaleX(1) !important;
+    }
+    .dash-loading-aura,
+    .dash-loading-glyph {
+      animation: none !important;
+    }
+  }
+  </style>
+</head>
+
+<body>
+
+<!-- =============== Navigation =============== -->
+<nav>
+  <a href="overview.html" class="brand">
+    <div class="brand-glyph">✦</div>
+    <span>smart_failure_detection</span>
+  </a>
+  <div class="links">
+    <a href="overview.html">Overview</a>
+    <a href="dashboard.html" class="active">Dashboard</a>
+    <a href="index.html">Project Input</a>
+    <a href="analysis-results.html">Analysis Results</a>
+  </div>
+</nav>
+
+
+<main>
+  <!-- =============== Loading State =============== -->
+  <div class="dash-loading" id="dashLoading">
+    <div class="dash-loading-spinner">
+      <div class="dash-loading-aura"></div>
+      <div class="dash-loading-glyph">✦</div>
+    </div>
+    <p class="dash-loading-text">Loading dashboard analytics…</p>
+  </div>
+
+
+  <!-- =============== Dashboard Content (hidden until data loads) =============== -->
+  <div id="dashContent" style="display:none;">
+
+    <!-- Page Header -->
+    <div class="dash-header">
+      <div>
+        <h1>Risk Analytics Dashboard</h1>
+        <p class="dash-subtitle">Portfolio-level risk intelligence across all analyzed ventures</p>
+      </div>
+      <div class="dash-actions">
+        <a href="index.html" class="btn-primary">+ Analyze New Project</a>
+        <button class="btn-secondary" id="reportBtn" onclick="showReportNotice()">📄 Generate Report</button>
+      </div>
+    </div>
+
+    <!-- Aggregate Summary Strip -->
+    <div class="stats-grid" id="statsGrid">
+      <!-- Card 1: Total Projects -->
+      <div class="stat-card">
+        <div class="stat-label">Total Projects</div>
+        <div class="stat-number" id="statTotalValue">0</div>
+        <div class="stat-detail">Active Portfolio</div>
+      </div>
+      <!-- Card 2: Avg Failure Risk (ring gauge) -->
+      <div class="stat-card">
+        <div class="stat-label">Avg Failure Risk</div>
+        <div class="stat-ring-area" id="statAvgRiskRing"></div>
+        <span class="risk-tag tag-warn" id="statAvgRiskTag">—</span>
+      </div>
+      <!-- Card 3: Avg Feasibility (ring gauge) -->
+      <div class="stat-card">
+        <div class="stat-label">Avg Feasibility</div>
+        <div class="stat-ring-area" id="statAvgFeasRing"></div>
+        <span class="risk-tag tag-success" id="statAvgFeasTag">—</span>
+      </div>
+      <!-- Card 4: Needs Attention -->
+      <div class="stat-card">
+        <div class="stat-label">Needs Attention</div>
+        <div class="stat-number" id="statAttentionValue" style="color: var(--risk-warn);">0</div>
+        <div class="stat-detail">Risk ≥ 60%</div>
+      </div>
+    </div>
+
+    <!-- Distribution Section -->
+    <div class="dist-grid">
+      <div class="dist-card">
+        <h2>Risk Level Distribution</h2>
+        <div class="dist-sub">Projects grouped by overall risk assessment</div>
+        <div id="riskDistBars"></div>
+      </div>
+      <div class="dist-card">
+        <h2>Industry Breakdown</h2>
+        <div class="dist-sub">Projects by sector and industry</div>
+        <div id="industryDistBars"></div>
+      </div>
+    </div>
+
+    </div>
+
+
+  <!-- =============== Empty State =============== -->
+  <div class="dash-empty" id="dashEmpty">
+    <div class="dash-state-icon">✦</div>
+    <h2>No Projects Analyzed Yet</h2>
+    <p>Submit your first startup project to begin building<br>your risk analytics portfolio.</p>
+    <a href="index.html" class="btn-primary">Analyze Your First Project →</a>
+  </div>
+
+
+  <!-- =============== Error State =============== -->
+  <div class="dash-error" id="dashError">
+    <div class="dash-state-icon">⚠</div>
+    <h2>Unable to Load Dashboard</h2>
+    <p id="errorMessage">An error occurred while loading the dashboard data.</p>
+    <button class="btn-primary" onclick="loadDashboard()">Retry</button>
+  </div>
+</main>
+
+
+<footer>
+  <p class="disclaimer">
+    Dashboard metrics are computed in real-time from project analysis data.
+    Scores reflect deterministic multi-factor modeling and may not capture all external variables.
+  </p>
+</footer>
+
+
+<script>
+/* ============================================================================
+   DASHBOARD — DATA FETCH, RENDER, AND INTERACTIONS
+============================================================================ */
+const API_BASE = "";
+let dashboardData = null;
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* =================== Bootstrap =================== */
+async function loadDashboard() {
+  const loading = document.getElementById("dashLoading");
+  const content = document.getElementById("dashContent");
+  const empty   = document.getElementById("dashEmpty");
+  const error   = document.getElementById("dashError");
+
+  loading.style.display = "block";
+  content.style.display = "none";
+  empty.style.display   = "none";
+  error.style.display   = "none";
+
+  try {
+    const res = await fetch(`${API_BASE}/api/dashboard/summary`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Server returned status ${res.status}`);
+    }
+    const data = await res.json();
+    dashboardData = data;
+    loading.style.display = "none";
+
+    if (data.totalProjects === 0) {
+      empty.style.display = "block";
+      return;
+    }
+
+    content.style.display = "block";
+    renderStats(data);
+    renderRiskDistribution(data);
+    renderIndustryDistribution(data);
+  } catch (err) {
+    loading.style.display = "none";
+    error.style.display   = "block";
+    document.getElementById("errorMessage").textContent = err.message;
+  }
+}
+
+/* =================== SVG Ring Gauge =================== */
+function ringSvg(pct, color, size, stroke) {
+  size = size || 76;
+  stroke = stroke || 6;
+  const r = (size - stroke) / 2;
+  const c = Math.PI * 2 * r;
+  const offset = c * (1 - Math.min(Math.max(pct, 0), 100) / 100);
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">'
+    + '<circle cx="' + (size/2) + '" cy="' + (size/2) + '" r="' + r + '" fill="none" stroke="#1c1c22" stroke-width="' + stroke + '"/>'
+    + '<circle cx="' + (size/2) + '" cy="' + (size/2) + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="' + stroke + '"'
+    + ' stroke-linecap="round" stroke-dasharray="' + c + '" stroke-dashoffset="' + offset + '"'
+    + ' transform="rotate(-90 ' + (size/2) + ' ' + (size/2) + ')"/>'
+    + '</svg>';
+}
+
+/* =================== Animated Counter =================== */
+function animateValue(el, start, end, duration, suffix) {
+  suffix = suffix || "";
+  if (prefersReducedMotion || duration <= 0) {
+    el.textContent = end + suffix;
+    return;
+  }
+  var startTime = null;
+  function step(timestamp) {
+    if (!startTime) startTime = timestamp;
+    var elapsed = timestamp - startTime;
+    var progress = Math.min(elapsed / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    var current = Math.round(start + (end - start) * eased);
+    el.textContent = current + suffix;
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* =================== Color Helpers =================== */
+function riskColor(score) {
+  return score >= 60 ? "#f43f5e" : score >= 35 ? "#f59e0b" : "#10b981";
+}
+function feasColor(score) {
+  return score >= 65 ? "#10b981" : score >= 40 ? "#f59e0b" : "#f43f5e";
+}
+function riskTagInfo(pct) {
+  if (pct >= 81) return { cls: "tag-danger",  label: "Critical Risk" };
+  if (pct >= 61) return { cls: "tag-danger",  label: "High Risk" };
+  if (pct >= 31) return { cls: "tag-warn",    label: "Moderate Risk" };
+  return               { cls: "tag-success", label: "Low Risk" };
+}
+function feasTagInfo(pct) {
+  if (pct >= 65) return { cls: "tag-success", label: "Feasible" };
+  if (pct >= 40) return { cls: "tag-warn",    label: "Needs Attention" };
+  return               { cls: "tag-danger",  label: "Low Feasibility" };
+}
+
+/* =================== Render Stats =================== */
+function renderStats(data) {
+  // Total Projects
+  animateValue(document.getElementById("statTotalValue"), 0, data.totalProjects, 800);
+
+  // Avg Failure Risk — ring gauge
+  var rc = riskColor(data.averageFailureRisk);
+  var rRing = document.getElementById("statAvgRiskRing");
+  rRing.innerHTML = ringSvg(data.averageFailureRisk, rc)
+    + '<span class="stat-ring-value" id="statAvgRiskValueInner">0%</span>';
+  animateValue(document.getElementById("statAvgRiskValueInner"), 0, data.averageFailureRisk, 1000, "%");
+  var rt = riskTagInfo(data.averageFailureRisk);
+  var rtEl = document.getElementById("statAvgRiskTag");
+  rtEl.textContent = rt.label;
+  rtEl.className = "risk-tag " + rt.cls;
+
+  // Avg Feasibility — ring gauge
+  var fc = feasColor(data.averageFeasibilityScore);
+  var fRing = document.getElementById("statAvgFeasRing");
+  fRing.innerHTML = ringSvg(data.averageFeasibilityScore, fc)
+    + '<span class="stat-ring-value" id="statAvgFeasValueInner">0%</span>';
+  animateValue(document.getElementById("statAvgFeasValueInner"), 0, data.averageFeasibilityScore, 1000, "%");
+  var ft = feasTagInfo(data.averageFeasibilityScore);
+  var ftEl = document.getElementById("statAvgFeasTag");
+  ftEl.textContent = ft.label;
+  ftEl.className = "risk-tag " + ft.cls;
+
+  // Needs Attention
+  var attEl = document.getElementById("statAttentionValue");
+  animateValue(attEl, 0, data.projectsNeedingAttention, 800);
+  attEl.style.color = data.projectsNeedingAttention > 0 ? "var(--risk-warn)" : "var(--risk-success)";
+}
+
+/* =================== Risk Distribution =================== */
+function renderRiskDistribution(data) {
+  var container = document.getElementById("riskDistBars");
+  var dist = data.riskDistribution;
+  var total = 0;
+  var levels = [
+    { key: "Low Risk",      color: "#10b981" },
+    { key: "Moderate Risk",  color: "#f59e0b" },
+    { key: "High Risk",      color: "#f43f5e" },
+    { key: "Critical Risk",  color: "#dc2626" },
+  ];
+  levels.forEach(function(l) { total += (dist[l.key] || 0); });
+  if (total === 0) total = 1;
+
+  container.innerHTML = levels.map(function(l) {
+    var count = dist[l.key] || 0;
+    var pct = (count / total) * 100;
+    return '<div class="dist-bar-row">'
+      + '<span class="dist-bar-label">' + l.key.replace(" Risk", "") + '</span>'
+      + '<span class="dist-bar-track"><span class="dist-bar-fill" style="width:' + pct + '%;background:' + l.color + ';"></span></span>'
+      + '<span class="dist-bar-count">' + count + '</span>'
+      + '</div>';
+  }).join("");
+}
+
+/* =================== Industry Distribution =================== */
+function renderIndustryDistribution(data) {
+  var container = document.getElementById("industryDistBars");
+  var entries = Object.entries(data.industryDistribution).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 8);
+
+  if (entries.length === 0) {
+    container.innerHTML = '<div style="font-size:12.5px;color:var(--text-muted);">No industry data yet.</div>';
+    return;
+  }
+
+  var maxCount = Math.max.apply(null, entries.map(function(e) { return e[1]; }));
+
+  container.innerHTML = entries.map(function(entry) {
+    var name = entry[0], count = entry[1];
+    var pct = (count / maxCount) * 100;
+    return '<div class="dist-bar-row">'
+      + '<span class="dist-bar-label">' + name + '</span>'
+      + '<span class="dist-bar-track"><span class="dist-bar-fill" style="width:' + pct + '%;background:var(--accent);"></span></span>'
+      + '<span class="dist-bar-count">' + count + '</span>'
+      + '</div>';
+  }).join("");
+}
+
+
+/* =================== Generate Report Hook (Phase 2) =================== */
+function showReportNotice() {
+  var btn = document.getElementById("reportBtn");
+  var orig = btn.innerHTML;
+  btn.innerHTML = "📄 Coming in Phase 2";
+  btn.disabled = true;
+  setTimeout(function() {
+    btn.innerHTML = orig;
+    btn.disabled = false;
+  }, 2500);
+}
+
+/* =================== Utility =================== */
+function escHtml(str) {
+  var div = document.createElement("div");
+  div.appendChild(document.createTextNode(str || ""));
+  return div.innerHTML;
+}
+
+
+/* =================== Init =================== */
+loadDashboard();
+</script>
+
+</body>
+</html>

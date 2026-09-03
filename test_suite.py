@@ -494,5 +494,58 @@ class TestRegenerationRateLimitingAndCooldown(unittest.TestCase):
                 self.assertEqual(get_resp.json().get("status"), "success")
 
 
+    def test_dashboard_summary(self):
+        # Insert a dummy project directly via the endpoint
+        resp = self.client.post("/api/projects", json={
+            "project_name": "Dashboard Test Project",
+            "industry_sector": "SaaS",
+            "business_model": "B2B",
+            "target_market": "Global",
+            "budget": 50000,
+            "description": "This is a dummy test project for dashboard."
+        })
+        self.assertEqual(resp.status_code, 200)
+
+        resp = self.client.get("/api/dashboard/summary")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIn("totalProjects", data)
+        self.assertGreater(data["totalProjects"], 0)
+        self.assertIn("averageFailureRisk", data)
+        self.assertIn("recentProjects", data)
+        self.assertGreater(len(data["recentProjects"]), 0)
+        
+        # Check if our test project is in recent projects
+        names = [p["project_name"] for p in data["recentProjects"]]
+        self.assertIn("Dashboard Test Project", names)
+
+
+class TestMilestone4Phase2Report(unittest.TestCase):
+    def setUp(self):
+        self.client = TestClient(app)
+        
+    def test_report_generation(self):
+        # Create a project
+        resp = self.client.post("/api/projects", json={
+            "project_name": "Report Test Project",
+            "industry_sector": "AI",
+            "business_model": "B2C",
+            "target_market": "Global",
+            "budget": 100000,
+            "description": "Test project for report generation."
+        })
+        self.assertEqual(resp.status_code, 200)
+        proj_id = resp.json()["project_id"]
+        
+        # Test report generation
+        resp = self.client.get(f"/api/report/{proj_id}")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.headers["content-type"], "text/html; charset=utf-8")
+        html = resp.text
+        self.assertIn("Comprehensive Assessment", html)
+        self.assertIn("Report Test Project", html)
+        self.assertIn("Risk Assessment", html)
+        self.assertIn("SWOT Analysis", html)
+
 if __name__ == "__main__":
     unittest.main()
