@@ -547,5 +547,132 @@ class TestMilestone4Phase2Report(unittest.TestCase):
         self.assertIn("Risk Assessment", html)
         self.assertIn("SWOT Analysis", html)
 
+
+class TestDashboardEnhancements(unittest.TestCase):
+    """Tests for dashboard bug fixes and new features (Milestone 4 Phase 2 enhancements)."""
+
+    def setUp(self):
+        self.client = TestClient(app)
+
+    def test_industry_case_insensitive_aggregation(self):
+        """Bug #2 fix: 'Healthcare' and 'healthcare' must merge into one industry key."""
+        # Submit projects with different casings of the same industry
+        for variant in ["Healthcare", "healthcare", "HEALTHCARE"]:
+            resp = self.client.post("/api/projects", json={
+                "project_name": f"Test {variant} Project",
+                "industry_sector": variant,
+                "business_model": "B2C",
+                "target_market": "Global",
+                "budget": 50000,
+                "description": "Test project for industry case normalization testing."
+            })
+            self.assertEqual(resp.status_code, 200)
+
+        resp = self.client.get("/api/dashboard/summary")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+
+        # All three should be merged under one normalized key
+        industry_keys = list(data["industryDistribution"].keys())
+        healthcare_keys = [k for k in industry_keys if k.lower() == "healthcare"]
+        self.assertEqual(len(healthcare_keys), 1, f"Expected 1 healthcare key, got: {healthcare_keys}")
+        self.assertEqual(healthcare_keys[0], "Healthcare", "Should be title-cased")
+        self.assertGreaterEqual(data["industryDistribution"]["Healthcare"], 3)
+
+    def test_recent_projects_structure(self):
+        """Feature #3: recentProjects must have all fields needed by the table UI."""
+        resp = self.client.post("/api/projects", json={
+            "project_name": "Recent Table Test",
+            "industry_sector": "Fintech",
+            "business_model": "B2B",
+            "target_market": "Global",
+            "budget": 75000,
+            "description": "Project to verify recent projects table structure."
+        })
+        self.assertEqual(resp.status_code, 200)
+
+        resp = self.client.get("/api/dashboard/summary")
+        data = resp.json()
+        self.assertGreater(len(data["recentProjects"]), 0)
+
+        project = data["recentProjects"][0]
+        required_fields = ["project_id", "project_name", "industry_sector",
+                           "failureRiskPct", "riskLevel", "created_at"]
+        for field in required_fields:
+            self.assertIn(field, project, f"Missing required field: {field}")
+
+    def test_needs_attention_proportion(self):
+        """Feature #5: projectsNeedingAttention must be <= totalProjects."""
+        resp = self.client.get("/api/dashboard/summary")
+        data = resp.json()
+        self.assertLessEqual(
+            data["projectsNeedingAttention"],
+            data["totalProjects"],
+            "Needs-attention count cannot exceed total projects"
+        )
+
+    def test_weekly_trend_data(self):
+        """Feature #6: weeklyTrend array must exist and have valid structure."""
+        # Ensure at least one project exists
+        self.client.post("/api/projects", json={
+            "project_name": "Trend Test Project",
+            "industry_sector": "AI",
+            "business_model": "SaaS",
+            "target_market": "Enterprise",
+            "budget": 100000,
+            "description": "Project to verify weekly trend data computation."
+        })
+
+        resp = self.client.get("/api/dashboard/summary")
+        data = resp.json()
+        self.assertIn("weeklyTrend", data)
+        self.assertIsInstance(data["weeklyTrend"], list)
+
+        if len(data["weeklyTrend"]) > 0:
+            entry = data["weeklyTrend"][0]
+            self.assertIn("week", entry)
+            self.assertIn("count", entry)
+            self.assertIn("avgRisk", entry)
+            self.assertGreater(entry["count"], 0)
+            self.assertGreaterEqual(entry["avgRisk"], 0)
+            self.assertLessEqual(entry["avgRisk"], 100)
+            # Week format should be YYYY-Www
+            self.assertRegex(entry["week"], r"^\d{4}-W\d{2}$")
+
+    def test_bar_fill_element_is_div(self):
+        """Bug #1 fix: distribution bar fill must use <div> (block-level), not <span>."""
+        with open("dashboard.html", "r", encoding="utf-8") as f:
+            html = f.read()
+        # The CSS must include display:block for .dist-bar-fill
+        self.assertIn("display: block", html, "dist-bar-fill CSS must have display:block")
+        # The JS must render <div class="dist-bar-fill"> not <span class="dist-bar-fill">
+        self.assertIn('<div class="dist-bar-fill"', html,
+                      "Bar fill must be a <div>, not a <span>")
+        self.assertNotIn('<span class="dist-bar-fill"', html,
+                         "Bar fill must NOT be a <span>")
+
+    def test_dashboard_html_has_new_sections(self):
+        """Verify dashboard HTML contains the new UI sections."""
+        with open("dashboard.html", "r", encoding="utf-8") as f:
+            html = f.read()
+        # Filter bar
+        self.assertIn('id="filterIndustry"', html, "Missing industry filter dropdown")
+        self.assertIn('id="filterRisk"', html, "Missing risk filter dropdown")
+        self.assertIn('id="filterTime"', html, "Missing time filter dropdown")
+        # Recent projects table
+        self.assertIn('id="recentTableBody"', html, "Missing recent projects table")
+        self.assertIn("View Analysis", html, "Missing View Analysis link text")
+        # Trend section
+        self.assertIn('id="trendChart"', html, "Missing trend chart section")
+        # Needs-attention enhanced detail
+        self.assertIn('id="statAttentionDetail"', html, "Missing needs-attention detail")
+        # Industry normalization reflected in recent projects (industry_sector field)
+        self.assertIn("industry_sector", html, "Must reference industry_sector field")
+        # Apple Design Skill: prefers-reduced-motion
+        self.assertIn("prefers-reduced-motion", html, "Must respect prefers-reduced-motion")
+        # Apple Design Skill: prefers-reduced-transparency
+        self.assertIn("prefers-reduced-transparency", html, "Must respect prefers-reduced-transparency")
+
+
 if __name__ == "__main__":
     unittest.main()

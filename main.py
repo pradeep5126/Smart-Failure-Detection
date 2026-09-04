@@ -175,6 +175,7 @@ def dashboard_summary():
             },
             "industryDistribution": {},
             "recentProjects": [],
+            "weeklyTrend": [],
         }
 
     total_risk = 0
@@ -183,6 +184,8 @@ def dashboard_summary():
     risk_dist = {"Low Risk": 0, "Moderate Risk": 0, "High Risk": 0, "Critical Risk": 0}
     industry_dist: dict[str, int] = {}
     recent: list[dict] = []
+    # Weekly trend accumulator: {iso_week_str: {"count": int, "totalRisk": int}}
+    weekly_accum: dict[str, dict] = {}
 
     for proj in projects:
         try:
@@ -201,16 +204,26 @@ def dashboard_summary():
         if r_level in risk_dist:
             risk_dist[r_level] += 1
 
-        ind = proj.get("industry_sector", "Other")
+        # Normalize industry names case-insensitively for aggregation (Bug #2 fix)
+        ind = proj.get("industry_sector", "Other").strip().title()
         industry_dist[ind] = industry_dist.get(ind, 0) + 1
 
         ca = proj.get("created_at")
         ca_str = ca.isoformat() if hasattr(ca, "isoformat") else str(ca or "")
 
+        # Accumulate weekly trend data from created_at timestamps
+        if hasattr(ca, "isocalendar"):
+            iso = ca.isocalendar()
+            week_key = f"{iso[0]}-W{iso[1]:02d}"
+            if week_key not in weekly_accum:
+                weekly_accum[week_key] = {"count": 0, "totalRisk": 0}
+            weekly_accum[week_key]["count"] += 1
+            weekly_accum[week_key]["totalRisk"] += r_score
+
         recent.append({
             "project_id": proj["project_id"],
             "project_name": proj["project_name"],
-            "industry_sector": proj["industry_sector"],
+            "industry_sector": ind,
             "business_model": proj.get("business_model", ""),
             "budget": float(proj.get("budget", 0)),
             "created_at": ca_str,
@@ -221,6 +234,18 @@ def dashboard_summary():
         })
 
     n = len(projects)
+
+    # Build sorted weekly trend (last 12 weeks max)
+    weekly_trend = []
+    for wk in sorted(weekly_accum.keys()):
+        entry = weekly_accum[wk]
+        weekly_trend.append({
+            "week": wk,
+            "count": entry["count"],
+            "avgRisk": round(entry["totalRisk"] / entry["count"]) if entry["count"] > 0 else 0,
+        })
+    weekly_trend = weekly_trend[-12:]
+
     return {
         "totalProjects": n,
         "averageFailureRisk": round(total_risk / n),
@@ -229,6 +254,7 @@ def dashboard_summary():
         "riskDistribution": risk_dist,
         "industryDistribution": industry_dist,
         "recentProjects": recent,
+        "weeklyTrend": weekly_trend,
     }
 
 @app.get("/api/report/{project_id}", response_class=HTMLResponse)
