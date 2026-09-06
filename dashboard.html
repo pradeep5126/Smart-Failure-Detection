@@ -39,7 +39,6 @@
     --radius-md:      12px;
     --radius-lg:      16px;
     --radius-pill:    9999px;
-    /* Apple Design Skill: §4 — critically damped spring for default UI */
     --ease-spring:    cubic-bezier(0.2, 0.8, 0.2, 1);
     --ease-out:       cubic-bezier(0.16, 1, 0.3, 1);
   }
@@ -452,7 +451,6 @@
     overflow: hidden;
     border: 1px solid rgba(255,255,255,0.04);
   }
-  /* Bug #1 Fix: display:block ensures fill element respects width */
   .dist-bar-fill {
     display: block;
     height: 100%;
@@ -1062,7 +1060,6 @@ function ringSvg(pct, color, size, stroke) {
 }
 
 /* =================== Animated Counter =================== */
-/* Apple Design Skill: §11 — smooth per-frame change below perception threshold */
 function animateValue(el, start, end, duration, suffix) {
   suffix = suffix || "";
   if (prefersReducedMotion || duration <= 0) {
@@ -1138,7 +1135,7 @@ function renderStats(data, projects) {
   ftEl.textContent = ft.label;
   ftEl.className = "risk-tag " + ft.cls;
 
-  // Needs Attention — enhanced with proportion (Feature #5)
+  // Needs Attention — enhanced with proportion
   var attEl = document.getElementById("statAttentionValue");
   animateValue(attEl, 0, attention, 800);
   attEl.style.color = attention > 0 ? "var(--risk-warn)" : "var(--risk-success)";
@@ -1152,7 +1149,6 @@ function renderStats(data, projects) {
 }
 
 /* =================== Risk Distribution =================== */
-/* Bug #1 Fix: use <div> (block-level) instead of <span> for fill */
 function renderRiskDistribution(projects) {
   var container = document.getElementById("riskDistBars");
   var dist = {"Low Risk": 0, "Moderate Risk": 0, "High Risk": 0, "Critical Risk": 0};
@@ -1182,7 +1178,6 @@ function renderRiskDistribution(projects) {
 }
 
 /* =================== Industry Distribution =================== */
-/* Bug #1 Fix: use <div> (block-level) instead of <span> for fill */
 function renderIndustryDistribution(projects) {
   var container = document.getElementById("industryDistBars");
   var dist = {};
@@ -1210,7 +1205,7 @@ function renderIndustryDistribution(projects) {
   }).join("");
 }
 
-/* =================== Trend Chart (Feature #6) =================== */
+/* =================== Trend Chart =================== */
 function renderTrend(data) {
   var container = document.getElementById("trendChart");
   var legend = document.getElementById("trendLegend");
@@ -1277,7 +1272,7 @@ function renderTrend(data) {
   container.innerHTML = svg;
 }
 
-/* =================== Recent Projects Table (Feature #3) =================== */
+/* =================== Recent Projects Table =================== */
 function renderRecentProjects(projects) {
   var tbody = document.getElementById("recentTableBody");
   var footer = document.getElementById("recentTableFooter");
@@ -1331,7 +1326,7 @@ function formatShortDate(isoStr) {
   }
 }
 
-/* =================== Filter Logic (Feature #4) =================== */
+/* =================== Filter Logic =================== */
 function populateFilterDropdowns(data) {
   var indSelect = document.getElementById("filterIndustry");
   var industries = Object.keys(data.industryDistribution).sort();
@@ -1400,16 +1395,12 @@ function resetFilters() {
   }
 }
 
-/* =================== Generate Report Hook (Phase 2) =================== */
+/* =================== Generate Report Hook =================== */
 function showReportNotice() {
-  var btn = document.getElementById("reportBtn");
-  var orig = btn.innerHTML;
-  btn.innerHTML = "📄 Coming in Phase 2";
-  btn.disabled = true;
-  setTimeout(function() {
-    btn.innerHTML = orig;
-    btn.disabled = false;
-  }, 2500);
+  var pid = prompt("Enter Project ID to generate report:");
+  if (pid) {
+    window.open("/api/report/" + pid, "_blank");
+  }
 }
 
 /* =================== Utility =================== */

@@ -1,11 +1,14 @@
 import os
 import re
 import time
+import math
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
 import psycopg2
 import psycopg2.extras
+from psycopg2 import pool
+import atexit
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
@@ -63,11 +66,50 @@ DB_CONFIG = {
 }
 
 
+_db_pool = None
+
+def init_db_pool():
+    global _db_pool
+    if _db_pool is None:
+        try:
+            # ThreadedConnectionPool ensures thread safety for FastAPI async/sync workers
+            _db_pool = pool.ThreadedConnectionPool(1, 20, **DB_CONFIG)
+        except psycopg2.OperationalError as e:
+            raise HTTPException(status_code=503, detail=f"Database pool initialization failed: {e}")
+
+@atexit.register
+def close_db_pool():
+    global _db_pool
+    if _db_pool:
+        _db_pool.closeall()
+
+class PooledConnectionWrapper:
+    def __init__(self, pool_obj, conn):
+        self.pool_obj = pool_obj
+        self.conn = conn
+
+    def cursor(self, *args, **kwargs):
+        return self.conn.cursor(*args, **kwargs)
+
+    def rollback(self):
+        self.conn.rollback()
+
+    def commit(self):
+        self.conn.commit()
+
+    def close(self):
+        if self.conn:
+            self.pool_obj.putconn(self.conn)
+            self.conn = None
+
+    def __getattr__(self, name):
+        return getattr(self.conn, name)
+
 def get_connection():
-    try:
-        return psycopg2.connect(**DB_CONFIG)
-    except psycopg2.OperationalError as e:
-        raise HTTPException(status_code=503, detail=f"Database connection failed: {e}")
+    global _db_pool
+    if _db_pool is None:
+        init_db_pool()
+    return PooledConnectionWrapper(_db_pool, _db_pool.getconn())
 
 
 class ProjectSubmission(BaseModel):
@@ -281,15 +323,12 @@ def get_report(project_id: int):
     }
 
     try:
-        strategy = get_or_generate_strategy(proj, m2_analysis, force_regenerate=False)
+        strategy = get_or_generate_strategy(proj, m2_analysis, force_refresh=False)
     except Exception:
         strategy = None
 
     html = generate_report(proj, mapped_analysis, strategy)
     return html
-
-
-import random
 
 
 def build_competitor_assessment(project: dict) -> list:
@@ -340,78 +379,6 @@ def build_competitor_assessment(project: dict) -> list:
     return competitors
 
 
-def generate_mock_analysis(project: dict) -> dict:
-    seed = project["project_id"]
-    rng = random.Random(seed)
-
-    failure_risk = rng.randint(35, 85)
-    success_prob = max(5, min(95, 100 - failure_risk + rng.randint(-8, 8)))
-
-    categories = ["Market Risk", "Financial Risk", "Technical Risk", "Operational Risk", "Competition Risk"]
-    risk_breakdown = [{"name": c, "pct": rng.randint(25, 90)} for c in categories]
-
-    health_score = max(10, min(95, 100 - failure_risk + rng.randint(-5, 10)))
-    health_status = "Excellent" if health_score >= 80 else "Good" if health_score >= 55 else "Needs Attention"
-
-    budget = float(project["budget"])
-
-    return {
-        "project": {
-            "name": project["project_name"],
-            "industry": project["industry_sector"],
-            "analysisDate": datetime.utcnow().strftime("%Y-%m-%d"),
-        },
-        "model": {
-            "name": "MOCK — Risk Scoring Model (Milestone 2 pending)",
-            "confidencePct": rng.randint(70, 95),
-            "confidenceLabel": "High Confidence" if failure_risk < 60 else "Moderate Confidence",
-        },
-        "overview": {
-            "failureRiskPct": failure_risk,
-            "riskLevel": "High" if failure_risk >= 60 else "Moderate" if failure_risk >= 35 else "Low",
-            "successProbabilityPct": success_prob,
-        },
-        "riskBreakdown": risk_breakdown,
-        "insights": [
-            f"Budget of ₹{budget:,.0f} relative to the stated target market may be under- or over-scoped — flagged for review.",
-            f"Industry sector '{project['industry_sector']}' shows variable competitive intensity in comparable ventures.",
-            "Business model and target market alignment should be validated with early customer feedback.",
-            "Placeholder insight — replace once the Market & Competitor Intelligence Engine (Milestone 1-2) is wired in.",
-        ],
-        "aiSummary": (
-            f"This is placeholder analysis for '{project['project_name']}'. Once the Risk Scoring Model and "
-            f"LLM strategic reasoning layer are implemented, this section will contain a real AI-generated "
-            f"assessment of failure risk, market position, and recommended next steps."
-        ),
-        "mitigations": [
-            {"icon": "trend", "title": "Validate market fit early", "desc": "Run a small pilot before committing full budget."},
-            {"icon": "shield", "title": "Extend financial runway", "desc": "Build in buffer beyond initial projections."},
-            {"icon": "target", "title": "Clarify competitive differentiation", "desc": "Identify a specific underserved niche."},
-        ],
-        "whatif": [
-            {"label": "Increase Budget", "from": f"₹{budget:,.0f}", "to": f"₹{budget * 1.5:,.0f}",
-             "metric": "Failure Risk", "fromPct": failure_risk, "toPct": max(10, failure_risk - 13), "delta": -13},
-        ],
-        "swot": {
-            "strengths": ["Clear initial value proposition", "Founder domain familiarity (placeholder)"],
-            "weaknesses": ["Limited working capital (placeholder)", "Undefined operational plan (placeholder)"],
-            "opportunities": ["Market demand trend (placeholder)", "Underserved segment (placeholder)"],
-            "threats": ["Established competitors (placeholder)", "Thin margins (placeholder)"],
-        },
-        "timeline": [
-            {"phase": "Immediate", "text": "Validate core assumptions with a small pilot before further spend."},
-            {"phase": "30 Days", "text": "Reassess budget allocation based on early data."},
-            {"phase": "60 Days", "text": "Finalize operational and go-to-market plan."},
-            {"phase": "90 Days", "text": "Evaluate expansion only if unit economics are positive."},
-        ],
-        "healthScore": {"score": health_score, "max": 100, "status": health_status},
-        "similarStartups": [
-            {"name": "Comparable Venture A", "category": project["industry_sector"]},
-            {"name": "Comparable Venture B", "category": project["industry_sector"]},
-            {"name": "Comparable Venture C", "category": project["industry_sector"]},
-        ],
-        "competitors": build_competitor_assessment(project),
-    }
 
 
 # =========================
@@ -428,7 +395,6 @@ def generate_mock_analysis(project: dict) -> dict:
 # but different underlying signals get genuinely different SWOT text.
 # =========================
 
-import math
 
 
 def _clamp(value: float, low: float = 0.0, high: float = 100.0) -> int:
